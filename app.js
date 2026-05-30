@@ -247,9 +247,38 @@ function handleLoginSubmit(event) {
       }
       alert(msg);
     })
+}
+
+function handleGoogleLogin() {
+  if (!isCloudActive || !firebaseAuth) {
+    alert("Por favor, configure a conexão da nuvem primeiro!");
+    return;
+  }
+  
+  const provider = new firebase.auth.GoogleAuthProvider();
+  
+  const googleBtn = document.querySelector('button[onclick="handleGoogleLogin()"]');
+  const originalHtml = googleBtn.innerHTML;
+  googleBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+  googleBtn.disabled = true;
+  
+  firebaseAuth.signInWithPopup(provider)
+    .then((result) => {
+      console.log("Login com Google bem-sucedido!", result.user.email);
+    })
+    .catch((error) => {
+      console.error("Erro no login com Google:", error);
+      let msg = "Erro ao fazer login com Google.";
+      if (error.code === 'auth/popup-closed-by-user') {
+        msg = "Conexão cancelada pelo usuário.";
+      } else if (error.code === 'auth/popup-blocked') {
+        msg = "O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.";
+      }
+      alert(msg);
+    })
     .finally(() => {
-      submitBtn.innerHTML = originalHtml;
-      submitBtn.disabled = false;
+      googleBtn.innerHTML = originalHtml;
+      googleBtn.disabled = false;
     });
 }
 
