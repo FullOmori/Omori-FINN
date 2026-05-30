@@ -18,7 +18,7 @@
 <body>
 
   <!-- TELA DE LOGIN NEON (MODO NUVEM ATIVO E DESLOGADO) -->
-  <div id="loginScreen" class="login-overlay" style="display: none;">
+  <div id="loginScreen" class="login-overlay" style="display: flex;">
     <div class="login-card">
       <div class="brand" style="margin-bottom: 1.5rem; justify-content: center;">
         <div class="brand-icon">
@@ -48,7 +48,14 @@
           </div>
         </div>
         
-        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="loginRememberMe" style="width: 16px; height: 16px; accent-color: var(--neon-cyan); margin: 0;" checked>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Permanecer conectado</span>
+          </label>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
           <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">
             <i class="fa-solid fa-right-to-bracket"></i> Entrar
           </button>
@@ -69,8 +76,8 @@
       </button>
       
       <div style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-        <button class="btn btn-secondary btn-sm" onclick="disableCloudMode()" style="font-size: 0.75rem; justify-content: center; width: 100%;">
-          <i class="fa-solid fa-cloud-slash"></i> Voltar para Modo Local Offline
+        <button class="btn btn-secondary btn-sm" onclick="enterOfflineMode()" style="font-size: 0.75rem; justify-content: center; width: 100%; border-color: rgba(57, 255, 20, 0.25); background: rgba(57, 255, 20, 0.02); color: #fff;">
+          <i class="fa-solid fa-cloud-slash" style="color: var(--neon-green); margin-right: 0.25rem;"></i> Entrar no Modo Offline (Local)
         </button>
       </div>
     </div>

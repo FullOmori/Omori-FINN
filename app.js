@@ -233,7 +233,14 @@ function handleLoginSubmit(event) {
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
   submitBtn.disabled = true;
   
-  firebaseAuth.signInWithEmailAndPassword(email, password)
+  // Define a persistência de login baseada no checkbox
+  const rememberMe = document.getElementById('loginRememberMe') ? document.getElementById('loginRememberMe').checked : true;
+  const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+  
+  firebaseAuth.setPersistence(persistence)
+    .then(() => {
+      return firebaseAuth.signInWithEmailAndPassword(email, password);
+    })
     .then((userCredential) => {
       console.log("Login efetuado com sucesso!", userCredential.user.email);
     })
@@ -247,6 +254,10 @@ function handleLoginSubmit(event) {
       }
       alert(msg);
     })
+    .finally(() => {
+      submitBtn.innerHTML = originalHtml;
+      submitBtn.disabled = false;
+    });
 }
 
 function handleGoogleLogin() {
@@ -255,6 +266,8 @@ function handleGoogleLogin() {
     return;
   }
   
+  const rememberMe = document.getElementById('loginRememberMe') ? document.getElementById('loginRememberMe').checked : true;
+  const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
   const provider = new firebase.auth.GoogleAuthProvider();
   
   const googleBtn = document.querySelector('button[onclick="handleGoogleLogin()"]');
@@ -262,7 +275,10 @@ function handleGoogleLogin() {
   googleBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
   googleBtn.disabled = true;
   
-  firebaseAuth.signInWithPopup(provider)
+  firebaseAuth.setPersistence(persistence)
+    .then(() => {
+      return firebaseAuth.signInWithPopup(provider);
+    })
     .then((result) => {
       console.log("Login com Google bem-sucedido!", result.user.email);
     })
@@ -338,11 +354,31 @@ function handleLogout() {
   }
 }
 
-function disableCloudMode() {
-  if (confirm("Deseja desativar a sincronização em nuvem e voltar para o Modo Local Offline? Suas alterações serão salvas localmente neste navegador.")) {
-    localStorage.removeItem('neonfi_firebase_config');
-    isCloudActive = false;
-    location.reload();
+function enterOfflineMode() {
+  if (isCloudActive) {
+    if (confirm("Você está no modo Nuvem. Deseja desativar a nuvem e acessar o modo offline local?")) {
+      localStorage.removeItem('neonfi_firebase_config');
+      isCloudActive = false;
+      location.reload();
+    }
+  } else {
+    // Se já está sem chaves (offline), simplesmente oculta a tela de login e entra no dashboard/onboarding
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    
+    const onboarded = localStorage.getItem('neonfi_onboarded');
+    if (onboarded === 'true') {
+      document.querySelector('.app-container').style.display = 'grid';
+      document.getElementById('onboardingWizard').style.display = 'none';
+      loadLocalStateFallback();
+      renderApp();
+    } else {
+      document.querySelector('.app-container').style.display = 'none';
+      document.getElementById('onboardingWizard').style.display = 'flex';
+      state = JSON.parse(JSON.stringify(window.EMPTY_TEMPLATE));
+      currentWizardStep = 1;
+      updateWizardUI();
+    }
   }
 }
 
