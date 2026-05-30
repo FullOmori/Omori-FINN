@@ -1469,10 +1469,6 @@ function updateCharts() {
   const ctxIE = document.getElementById('chartIncomesExpenses').getContext('2d');
   const ctxCat = document.getElementById('chartCategories').getContext('2d');
   
-  // Destruir instâncias antigas para poder recriar com novos dados
-  if (chartIncomesExpensesInstance) chartIncomesExpensesInstance.destroy();
-  if (chartCategoriesInstance) chartCategoriesInstance.destroy();
-  
   // Processamento de dados: Receitas vs Despesas PF por mês
   // Vamos agrupar os últimos 4 meses
   const monthlyData = {};
@@ -1500,42 +1496,53 @@ function updateCharts() {
   const expensesValues = sortedMonths.map(m => monthlyData[m].expense);
 
   // Gráfico 1: Receitas vs Despesas
-  chartIncomesExpensesInstance = new Chart(ctxIE, {
-    type: 'bar',
-    data: {
-      labels: labelsMonths.length > 0 ? labelsMonths : ["Sem dados"],
-      datasets: [
-        {
-          label: 'Entradas (PF)',
-          data: incomesValues.length > 0 ? incomesValues : [0],
-          backgroundColor: 'rgba(57, 255, 20, 0.2)',
-          borderColor: '#39ff14',
-          borderWidth: 2,
-          borderRadius: 6,
-          boxShadow: '0 0 10px rgba(57, 255, 20, 0.4)'
-        },
-        {
-          label: 'Saídas (PF)',
-          data: expensesValues.length > 0 ? expensesValues : [0],
-          backgroundColor: 'rgba(255, 0, 127, 0.2)',
-          borderColor: '#ff007f',
-          borderWidth: 2,
-          borderRadius: 6
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#9ca3af', font: { family: 'Outfit' } } }
+  const incomesLabelsFinal = labelsMonths.length > 0 ? labelsMonths : ["Sem dados"];
+  const incomesValuesFinal = incomesValues.length > 0 ? incomesValues : [0];
+  const expensesValuesFinal = expensesValues.length > 0 ? expensesValues : [0];
+
+  if (chartIncomesExpensesInstance) {
+    chartIncomesExpensesInstance.data.labels = incomesLabelsFinal;
+    chartIncomesExpensesInstance.data.datasets[0].data = incomesValuesFinal;
+    chartIncomesExpensesInstance.data.datasets[1].data = expensesValuesFinal;
+    chartIncomesExpensesInstance.update();
+  } else {
+    chartIncomesExpensesInstance = new Chart(ctxIE, {
+      type: 'bar',
+      data: {
+        labels: incomesLabelsFinal,
+        datasets: [
+          {
+            label: 'Entradas (PF)',
+            data: incomesValuesFinal,
+            backgroundColor: 'rgba(57, 255, 20, 0.2)',
+            borderColor: '#39ff14',
+            borderWidth: 2,
+            borderRadius: 6,
+            boxShadow: '0 0 10px rgba(57, 255, 20, 0.4)'
+          },
+          {
+            label: 'Saídas (PF)',
+            data: expensesValuesFinal,
+            backgroundColor: 'rgba(255, 0, 127, 0.2)',
+            borderColor: '#ff007f',
+            borderWidth: 2,
+            borderRadius: 6
+          }
+        ]
       },
-      scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
-        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', font: { family: 'Outfit' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#9ca3af', font: { family: 'Outfit' } } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
+          y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', font: { family: 'Outfit' } } }
+        }
       }
-    }
-  });
+    });
+  }
 
   // Processamento de dados: Despesas por Categoria
   const catData = {};
@@ -1574,29 +1581,40 @@ function updateCharts() {
     '#0055ff'  // Blue
   ];
 
+  const catLabelsFinal = catLabels.length > 0 ? catLabels : ["Sem despesas"];
+  const catValuesFinal = catValues.length > 0 ? catValues : [0];
+  const catBackgroundsFinal = catLabels.length > 0 ? neonPalette.slice(0, catLabels.length) : ['rgba(255, 255, 255, 0.05)'];
+
   // Gráfico 2: Despesas por Categoria (Doughnut)
-  chartCategoriesInstance = new Chart(ctxCat, {
-    type: 'doughnut',
-    data: {
-      labels: catLabels.length > 0 ? catLabels : ["Sem despesas"],
-      datasets: [{
-        data: catValues.length > 0 ? catValues : [0],
-        backgroundColor: catLabels.length > 0 ? neonPalette.slice(0, catLabels.length) : ['rgba(255, 255, 255, 0.05)'],
-        borderColor: '#12141d',
-        borderWidth: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: { color: '#9ca3af', font: { family: 'Outfit', size: 11 } }
+  if (chartCategoriesInstance) {
+    chartCategoriesInstance.data.labels = catLabelsFinal;
+    chartCategoriesInstance.data.datasets[0].data = catValuesFinal;
+    chartCategoriesInstance.data.datasets[0].backgroundColor = catBackgroundsFinal;
+    chartCategoriesInstance.update();
+  } else {
+    chartCategoriesInstance = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: catLabelsFinal,
+        datasets: [{
+          data: catValuesFinal,
+          backgroundColor: catBackgroundsFinal,
+          borderColor: '#12141d',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: '#9ca3af', font: { family: 'Outfit', size: 11 } }
+          }
         }
       }
-    }
-  });
+    });
+  }
 }
 
 // 6. AUXILIARES DE SUBMISSÃO DE FORMULÁRIOS (LIGAÇÕES DE MODAIS)

@@ -87,9 +87,7 @@ body {
 
 /* Sidebar Estilo Neon */
 .sidebar {
-  background: rgba(11, 12, 19, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #0b0c13;
   border-right: 1px solid var(--glass-border);
   padding: 2rem 1.5rem;
   display: flex;
@@ -245,9 +243,7 @@ body {
 
 /* Header Principal */
 .header {
-  background: rgba(9, 10, 15, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(9, 10, 15, 0.98);
   border-bottom: 1px solid var(--glass-border);
   padding: 1.5rem 2.5rem;
   display: flex;
@@ -333,9 +329,7 @@ body {
 }
 
 .card {
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--bg-card-solid);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 1.5rem;
@@ -343,6 +337,7 @@ body {
   transition: transform var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
   position: relative;
   overflow: hidden;
+  will-change: transform, box-shadow;
 }
 
 .card:hover {
@@ -1081,9 +1076,7 @@ input:focus, select:focus, textarea:focus {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(9, 10, 15, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: #090a0f;
     border-top: 1px solid var(--glass-border);
     padding: 0.5rem 0.75rem !important;
     flex-direction: row !important;
