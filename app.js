@@ -544,12 +544,28 @@ function updatePaydayDisplay() {
 function renderApp() {
   updatePaydayDisplay();
   
-  // Renderiza o perfil no rodapé da barra lateral
-  document.getElementById('profileName').innerText = state.profile.name;
-  const names = state.profile.name.split(" ");
+  // Renderiza o perfil no rodapé da barra lateral e modal de configurações
+  const profileName = state.profile.name || "Usuário";
+  document.getElementById('profileName').innerText = profileName;
+  
+  const names = profileName.split(" ");
   const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
   document.getElementById('profileInitials').innerText = initials;
   document.getElementById('welcomeTitle').innerText = `Olá, ${names[0]}!`;
+  
+  // Atualiza modal de configurações
+  if (document.getElementById('settingsProfileName')) {
+    document.getElementById('settingsProfileName').innerText = profileName;
+  }
+  if (document.getElementById('settingsProfileInitials')) {
+    document.getElementById('settingsProfileInitials').innerText = initials;
+  }
+  
+  // Atualiza exibição do botão de logout no modal de configurações
+  const logoutBtn = document.getElementById('settingsLogoutBtn');
+  if (logoutBtn) {
+    logoutBtn.style.display = (isCloudActive && loggedInUser) ? 'flex' : 'none';
+  }
   
   // Renderiza a aba atual
   renderTabContent(selectedTab);

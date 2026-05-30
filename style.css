@@ -1032,9 +1032,18 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* Responsividade Geral */
+.sidebar-mobile-settings {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .app-container {
     grid-template-columns: 1fr;
+  }
+  
+  /* Botão de engrenagem mobile visível */
+  .sidebar-mobile-settings {
+    display: block !important;
   }
   
   /* Sidebar vira o Top Bar Header no Mobile */
@@ -1053,7 +1062,7 @@ input:focus, select:focus, textarea:focus {
   }
   
   .brand {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
   }
   
   .brand-icon {
@@ -1066,7 +1075,7 @@ input:focus, select:focus, textarea:focus {
     font-size: 1.15rem;
   }
 
-  /* Nav Menu vira a Barra de Navegação Fixa Inferior (Estilo App de Banco) */
+  /* Nav Menu vira a Barra de Navegação Fixa Inferior (Estilo Carrossel Swipável) */
   .nav-menu {
     position: fixed;
     bottom: 0;
@@ -1076,18 +1085,25 @@ input:focus, select:focus, textarea:focus {
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--glass-border);
-    padding: 0.4rem 0.5rem;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
-    gap: 0;
+    padding: 0.5rem 0.75rem !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem !important;
     z-index: 999;
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
+    scrollbar-width: none !important; /* Firefox */
+  }
+  
+  .nav-menu::-webkit-scrollbar {
+    display: none !important; /* Chrome/Safari */
   }
   
   .nav-item {
-    width: auto;
-    flex: 1;
+    width: auto !important;
+    flex: 0 0 auto !important;
     display: flex;
     justify-content: center;
   }
@@ -1095,13 +1111,13 @@ input:focus, select:focus, textarea:focus {
   .nav-link {
     flex-direction: column;
     gap: 0.2rem;
-    padding: 0.4rem 0.2rem;
-    font-size: 0.6rem;
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.65rem !important;
     font-weight: 600;
     align-items: center;
     text-align: center;
     border-radius: 8px;
-    width: 100%;
+    width: 80px !important;
     background: none !important;
     border: 1px solid transparent !important;
     box-shadow: none !important;
@@ -1120,12 +1136,12 @@ input:focus, select:focus, textarea:focus {
   }
 
   .sidebar-footer {
-    display: none; /* Escondido no mobile pois usamos o menu embaixo */
+    display: none; /* Escondido no mobile pois usamos o modal embaixo */
   }
 
   /* Main Content com espaço embaixo para não ser cortado pela bottom bar */
   .main-content {
-    padding-bottom: 75px;
+    padding-bottom: 85px !important;
     height: auto;
     overflow-y: visible;
   }
@@ -1190,6 +1206,17 @@ input:focus, select:focus, textarea:focus {
   .chart-card {
     min-height: 280px;
   }
+
+  /* Evitar que tabelas grandes quebrem a tela mobile */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+  }
+  .table-wrapper::-webkit-scrollbar {
+    display: none !important;
+  }
 }
 
 /* Grid de duas colunas responsivo */
@@ -1201,7 +1228,49 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 768px) {
   .grid-2col {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Adaptações preventivas para celulares muito pequenos (iPhone SE / etc) */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem !important;
+    margin: 1rem !important;
+    max-width: calc(100% - 2rem) !important;
+  }
+  
+  .welcome-section h1 {
+    font-size: 1.25rem !important;
+  }
+  
+  .header-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+  
+  .payday-widget {
+    justify-content: center !important;
+  }
+  
+  .header-actions .btn {
+    justify-content: center !important;
+  }
+  
+  .flow-box {
+    padding: 1rem !important;
+  }
+  
+  .flow-diagram-container {
+    padding: 1rem !important;
+  }
+  
+  .modal-content {
+    padding: 1.25rem 1rem !important;
+    margin: 1rem !important;
+    max-width: calc(100% - 2rem) !important;
   }
 }
 

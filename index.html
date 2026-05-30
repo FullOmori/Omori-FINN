@@ -404,11 +404,18 @@
     
     <!-- BARRA LATERAL (SIDEBAR) -->
     <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-icon">
-          <i class="fa-solid fa-bolt"></i>
+      <div class="brand" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="brand-icon">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div class="brand-text">Omori<span>.Fin</span></div>
         </div>
-        <div class="brand-text">Omori<span>.Fin</span></div>
+        <div class="sidebar-mobile-settings">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-system-settings')" style="padding: 0.4rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-color: var(--border-color); cursor: pointer;" title="Configurações do Sistema">
+            <i class="fa-solid fa-gear" style="font-size: 1.1rem; color: var(--neon-cyan);"></i>
+          </button>
+        </div>
       </div>
       
       <nav class="nav-menu">
@@ -1430,6 +1437,48 @@
           <button type="submit" class="btn btn-primary">Salvar e Conectar Nuvem</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÕES DO SISTEMA (MOBILE FRIENDLY) -->
+  <div class="modal-overlay" id="modal-system-settings">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-gears color-cyan"></i> Configurações</h3>
+        <button class="modal-close" onclick="closeModal('modal-system-settings')">&times;</button>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 1.25rem; margin-top: 0.5rem;">
+        <!-- Perfil -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div class="profile-img" id="settingsProfileInitials" style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--neon-cyan); border: 2px solid var(--neon-cyan); background: #151722;">RO</div>
+          <div style="display: flex; flex-direction: column;">
+            <span id="settingsProfileName" style="font-weight: 600; font-size: 0.9rem;">Rafael Omori</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Perfil Ativo</span>
+          </div>
+        </div>
+        
+        <!-- Ações do Sistema -->
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="closeModal('modal-system-settings'); openModal('modal-config-cloud');" style="justify-content: center; width: 100%;">
+            <i class="fa-solid fa-cloud"></i> Configurar Nuvem (Firebase)
+          </button>
+          
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="closeModal('modal-system-settings'); resetToMockData();" style="flex: 1; justify-content: center; font-size: 0.8rem;">
+              <i class="fa-solid fa-database"></i> Carregar Demo
+            </button>
+            <button class="btn btn-danger" onclick="closeModal('modal-system-settings'); clearAllData();" style="flex: 1; justify-content: center; font-size: 0.8rem;">
+              <i class="fa-solid fa-trash-can"></i> Zerar Dados
+            </button>
+          </div>
+          
+          <!-- Botão Sair (Logout) apenas na nuvem -->
+          <button id="settingsLogoutBtn" class="btn btn-danger" onclick="closeModal('modal-system-settings'); handleLogout();" style="display: none; justify-content: center; width: 100%; background: rgba(255, 0, 127, 0.1); border-color: rgba(255, 0, 127, 0.3);">
+            <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta (Logout)
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
