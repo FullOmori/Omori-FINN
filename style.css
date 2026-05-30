@@ -1037,50 +1037,158 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr;
   }
   
+  /* Sidebar vira o Top Bar Header no Mobile */
   .sidebar {
     height: auto;
-    position: relative;
-    padding: 1.5rem;
+    position: sticky;
+    top: 0;
+    padding: 0.85rem 1.25rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(11, 12, 19, 0.95);
+    z-index: 1000;
   }
   
   .brand {
-    margin-bottom: 1.5rem;
-    justify-content: center;
+    margin-bottom: 0;
   }
   
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  
+  .brand-text {
+    font-size: 1.15rem;
+  }
+
+  /* Nav Menu vira a Barra de Navegação Fixa Inferior (Estilo App de Banco) */
   .nav-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(9, 10, 15, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--glass-border);
+    padding: 0.4rem 0.5rem;
     flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0;
+    z-index: 999;
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
   }
   
   .nav-item {
     width: auto;
+    flex: 1;
+    display: flex;
+    justify-content: center;
   }
   
   .nav-link {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    align-items: center;
+    text-align: center;
+    border-radius: 8px;
+    width: 100%;
+    background: none !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
   
+  .nav-link i {
+    font-size: 1.15rem;
+    margin-bottom: 1px;
+    transform: none !important;
+  }
+  
+  .nav-link.active i {
+    color: var(--neon-cyan);
+    filter: drop-shadow(0 0 4px var(--neon-cyan-glow));
+  }
+
   .sidebar-footer {
-    display: none; /* Esconder perfil na barra lateral no celular */
+    display: none; /* Escondido no mobile pois usamos o menu embaixo */
+  }
+
+  /* Main Content com espaço embaixo para não ser cortado pela bottom bar */
+  .main-content {
+    padding-bottom: 75px;
+    height: auto;
+    overflow-y: visible;
   }
   
   .header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 1.5rem;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
+    position: relative;
+    background: none;
+    border-bottom: 1px solid var(--border-color);
   }
   
   .header-actions {
     width: 100%;
     justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .payday-widget {
+    padding: 0.4rem 0.75rem;
   }
   
   .tab-content {
-    padding: 1.5rem 1rem;
+    padding: 1rem 0.75rem;
+  }
+  
+  /* Ajustes do Onboarding Wizard no Mobile */
+  .onboarding-container {
+    padding: 0.75rem;
+  }
+  
+  .onboarding-card {
+    padding: 1.5rem 1.25rem;
+    border-radius: 18px;
+  }
+  
+  .onboarding-body {
+    min-height: auto;
+  }
+
+  /* Grid e Cards no Mobile */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1.25rem 1rem;
+  }
+
+  .card-value {
+    font-size: 1.5rem;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+  
+  .chart-card {
+    min-height: 280px;
   }
 }
 
@@ -1252,6 +1360,50 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
   background: rgba(0, 240, 255, 0.03);
   transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   11. TELA DE LOGIN E NUVEM (CYBERPUNK NEON STYLE)
+   ========================================================================== */
+
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(9, 10, 15, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(157, 78, 221, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 40%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(18, 20, 29, 0.75);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.1), var(--shadow-neon);
+  animation: scaleUp 0.4s ease-out forwards;
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 

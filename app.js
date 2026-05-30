@@ -25,37 +25,100 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. GERENCIAMENTO DE ESTADO E PERSISTÊNCIA
 let currentWizardStep = 1;
 
+// Variáveis Globais para Conexão em Nuvem (Firebase)
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let isCloudActive = false;
+let loggedInUser = null;
+let isSyncingFromCloud = false;
+let cloudUnsubscribe = null;
+
 function initAppState() {
-  const onboarded = localStorage.getItem('neonfi_onboarded');
+  // Preencher formulário de configuração da nuvem no modal, se existir
+  const savedConfig = localStorage.getItem('neonfi_firebase_config');
+  if (savedConfig) {
+    try {
+      const config = JSON.parse(savedConfig);
+      document.getElementById('cloudFirebaseConfig').value = JSON.stringify(config, null, 2);
+      
+      // Inicializar Firebase
+      firebaseApp = firebase.initializeApp(config);
+      firebaseAuth = firebase.auth();
+      firebaseDb = firebase.firestore();
+      isCloudActive = true;
+      
+      // Monitorar estado de autenticação
+      firebaseAuth.onAuthStateChanged((user) => {
+        if (user) {
+          loggedInUser = user;
+          
+          // Exibir indicador de status de nuvem conectada
+          document.getElementById('cloudStatusIndicator').style.display = 'flex';
+          
+          // Iniciar sincronização com Firestore
+          setupCloudSync(user.uid);
+        } else {
+          loggedInUser = null;
+          document.getElementById('cloudStatusIndicator').style.display = 'none';
+          
+          // Exibir tela de login, ocultar o resto
+          document.getElementById('loginScreen').style.display = 'flex';
+          document.querySelector('.app-container').style.display = 'none';
+          document.getElementById('onboardingWizard').style.display = 'none';
+        }
+      });
+      
+      // Em modo nuvem, a inicialização dos dados é assíncrona após o login/onSnapshot.
+      // Carregamos temporariamente o estado local enquanto carrega a nuvem para não quebrar a tela inicial.
+      loadLocalStateFallback();
+      return;
+      
+    } catch (err) {
+      console.error("Falha ao inicializar o Firebase. Desativando Modo Nuvem.", err);
+      alert("Erro ao conectar à nuvem do Firebase. Por favor, verifique suas chaves.");
+      localStorage.removeItem('neonfi_firebase_config');
+      isCloudActive = false;
+    }
+  }
   
+  // Caso offline ou erro na inicialização do Firebase:
+  isCloudActive = false;
+  if (document.getElementById('cloudStatusIndicator')) {
+    document.getElementById('cloudStatusIndicator').style.display = 'none';
+  }
+  if (document.getElementById('loginScreen')) {
+    document.getElementById('loginScreen').style.display = 'none';
+  }
+  
+  const onboarded = localStorage.getItem('neonfi_onboarded');
   if (onboarded === 'true') {
-    // Exibe painel principal e oculta assistente
     document.querySelector('.app-container').style.display = 'grid';
     document.getElementById('onboardingWizard').style.display = 'none';
-    
-    const savedState = localStorage.getItem('neonfi_state');
-    if (savedState) {
-      try {
-        state = JSON.parse(savedState);
-      } catch (e) {
-        console.error("Erro ao carregar estado do localStorage. Restaurando padrões.", e);
-        state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
-      }
-    } else {
-      state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
-      saveState();
-    }
+    loadLocalStateFallback();
   } else {
-    // Exibe assistente e oculta painel
     document.querySelector('.app-container').style.display = 'none';
     document.getElementById('onboardingWizard').style.display = 'flex';
-    
-    // Inicia com template 100% limpo
     state = JSON.parse(JSON.stringify(window.EMPTY_TEMPLATE));
     currentWizardStep = 1;
     updateWizardUI();
   }
+}
 
+function loadLocalStateFallback() {
+  const savedState = localStorage.getItem('neonfi_state');
+  if (savedState) {
+    try {
+      state = JSON.parse(savedState);
+    } catch (e) {
+      console.error("Erro ao carregar estado do localStorage. Restaurando padrões.", e);
+      state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+    }
+  } else {
+    state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+    saveState();
+  }
+  
   // Seleciona o primeiro cartão de crédito por padrão, se houver
   if (state.creditCards && state.creditCards.length > 0) {
     selectedCardId = state.creditCards[0].id;
@@ -64,6 +127,233 @@ function initAppState() {
 
 function saveState() {
   localStorage.setItem('neonfi_state', JSON.stringify(state));
+  
+  // Se a nuvem estiver ativa e logada, e não estivermos aplicando uma atualização de sincronização vinda da nuvem
+  if (isCloudActive && loggedInUser && !isSyncingFromCloud) {
+    uploadStateToCloud(state);
+  }
+}
+
+// ==========================================================================
+// FUNÇÕES DE SINCRONIZAÇÃO EM NUVEM (FIREBASE INTEGRATION)
+// ==========================================================================
+
+function setupCloudSync(uid) {
+  if (!isCloudActive || !firebaseDb) return;
+  
+  const docRef = firebaseDb.collection('users').doc(uid).collection('data').doc('financialState');
+  
+  if (cloudUnsubscribe) {
+    cloudUnsubscribe();
+  }
+  
+  // Escutador em tempo real
+  cloudUnsubscribe = docRef.onSnapshot((docSnapshot) => {
+    if (docSnapshot.exists) {
+      const cloudState = docSnapshot.data();
+      console.log("Dados recebidos da nuvem:", cloudState);
+      
+      // Evita disparar salvamento infinito
+      isSyncingFromCloud = true;
+      state = cloudState;
+      
+      // Sincroniza também com o local storage local para backup offline
+      localStorage.setItem('neonfi_state', JSON.stringify(state));
+      localStorage.setItem('neonfi_onboarded', 'true');
+      
+      // Garante que o cartão selecionado permaneça válido
+      if (state.creditCards && state.creditCards.length > 0) {
+        if (!selectedCardId || !state.creditCards.find(c => c.id === selectedCardId)) {
+          selectedCardId = state.creditCards[0].id;
+        }
+      } else {
+        selectedCardId = null;
+      }
+      
+      // Oculta telas de login/onboarding e exibe o dashboard principal
+      if (document.getElementById('loginScreen')) {
+        document.getElementById('loginScreen').style.display = 'none';
+      }
+      if (document.getElementById('onboardingWizard')) {
+        document.getElementById('onboardingWizard').style.display = 'none';
+      }
+      document.querySelector('.app-container').style.display = 'grid';
+      
+      renderApp();
+      isSyncingFromCloud = false;
+    } else {
+      console.log("Documento não encontrado na nuvem para este usuário. Inicializando com dados locais...");
+      // Se o usuário acabou de logar e não tem dados na nuvem, mas tem dados offline locais,
+      // nós enviamos os dados offline dele para a nuvem para não perder o histórico!
+      let stateToUpload = state;
+      const onboarded = localStorage.getItem('neonfi_onboarded');
+      
+      if (onboarded !== 'true' || !state.profile || !state.profile.name) {
+        // Se não tem cadastro local, inicializa com o template inicial padrão
+        stateToUpload = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+      }
+      
+      uploadStateToCloud(stateToUpload);
+    }
+  }, (error) => {
+    console.error("Erro na escuta da nuvem Firestore:", error);
+  });
+}
+
+function uploadStateToCloud(stateData) {
+  if (!isCloudActive || !loggedInUser || !firebaseDb) return;
+  
+  const uid = loggedInUser.uid;
+  const docRef = firebaseDb.collection('users').doc(uid).collection('data').doc('financialState');
+  
+  docRef.set(stateData)
+    .then(() => {
+      console.log("Estado sincronizado com sucesso na nuvem Firestore.");
+    })
+    .catch((err) => {
+      console.error("Erro ao fazer upload para a nuvem Firestore:", err);
+    });
+}
+
+// Manipuladores de Login, Cadastro, Configuração e Logout da Nuvem
+
+function handleLoginSubmit(event) {
+  if (event) event.preventDefault();
+  
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  
+  if (!email || !password) {
+    alert("Por favor, preencha o e-mail e a senha.");
+    return;
+  }
+  
+  const submitBtn = document.querySelector('#formLogin button[type="submit"]');
+  const originalHtml = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+  submitBtn.disabled = true;
+  
+  firebaseAuth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log("Login efetuado com sucesso!", userCredential.user.email);
+    })
+    .catch((error) => {
+      console.error("Erro no login:", error);
+      let msg = "Erro ao efetuar login. Verifique sua senha.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        msg = "E-mail ou senha incorretos.";
+      } else if (error.code === 'auth/invalid-email') {
+        msg = "E-mail com formato inválido.";
+      }
+      alert(msg);
+    })
+    .finally(() => {
+      submitBtn.innerHTML = originalHtml;
+      submitBtn.disabled = false;
+    });
+}
+
+function handleSignUpSubmit() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  
+  if (!email || !password) {
+    alert("Digite o e-mail e senha desejados nos campos acima e clique em Registrar.");
+    return;
+  }
+  
+  if (password.length < 6) {
+    alert("A senha deve ter pelo menos 6 caracteres.");
+    return;
+  }
+  
+  const signUpBtn = document.querySelector('#formLogin button.btn-success');
+  const originalHtml = signUpBtn.innerHTML;
+  signUpBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
+  signUpBtn.disabled = true;
+  
+  firebaseAuth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log("Conta registrada com sucesso!", userCredential.user.email);
+      alert("Conta registrada com sucesso! Seus dados foram sincronizados na nuvem.");
+    })
+    .catch((error) => {
+      console.error("Erro no cadastro:", error);
+      let msg = "Erro ao registrar conta.";
+      if (error.code === 'auth/email-already-in-use') {
+        msg = "Este e-mail já está em uso.";
+      } else if (error.code === 'auth/invalid-email') {
+        msg = "E-mail inválido.";
+      }
+      alert(msg);
+    })
+    .finally(() => {
+      signUpBtn.innerHTML = originalHtml;
+      signUpBtn.disabled = false;
+    });
+}
+
+function handleLogout() {
+  if (confirm("Deseja realmente sair da sua conta na nuvem? Suas alterações futuras não serão salvas na nuvem até que faça login novamente.")) {
+    if (cloudUnsubscribe) {
+      cloudUnsubscribe();
+      cloudUnsubscribe = null;
+    }
+    
+    firebaseAuth.signOut()
+      .then(() => {
+        loggedInUser = null;
+        console.log("Desconectado da conta.");
+      })
+      .catch(err => console.error("Erro no logout:", err));
+  }
+}
+
+function disableCloudMode() {
+  if (confirm("Deseja desativar a sincronização em nuvem e voltar para o Modo Local Offline? Suas alterações serão salvas localmente neste navegador.")) {
+    localStorage.removeItem('neonfi_firebase_config');
+    isCloudActive = false;
+    location.reload();
+  }
+}
+
+function handleCloudConfigSubmit(event) {
+  if (event) event.preventDefault();
+  
+  const rawConfig = document.getElementById('cloudFirebaseConfig').value.trim();
+  
+  try {
+    let cleanJson = rawConfig;
+    
+    // Extrai o objeto de configuração do Firebase caso colado como código Javascript
+    const firstBrace = rawConfig.indexOf('{');
+    const lastBrace = rawConfig.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanJson = rawConfig.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // Executa avaliação segura do objeto para aceitar chaves sem aspas e aspas simples
+    const parsedConfig = Function("return " + cleanJson)();
+    
+    // Valida propriedades obrigatórias
+    const keys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+    const missing = keys.filter(k => !parsedConfig[k]);
+    
+    if (missing.length > 0) {
+      alert("A configuração está incompleta. Faltam chaves essenciais: " + missing.join(', '));
+      return;
+    }
+    
+    // Salva no localStorage e recarrega
+    localStorage.setItem('neonfi_firebase_config', JSON.stringify(parsedConfig));
+    alert("Nuvem configurada com sucesso! O aplicativo será recarregado para sincronizar.");
+    location.reload();
+    
+  } catch (err) {
+    console.error("Erro ao validar chaves do Firebase:", err);
+    alert("Formato inválido de configuração. Por favor, cole o objeto firebaseConfig exatamente como fornecido pelo console do Firebase.");
+  }
 }
 
 // 2. NAVEGAÇÃO POR ABAS (SPA)

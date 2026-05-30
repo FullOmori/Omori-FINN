@@ -3,15 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeonFi // Controle Financeiro Inteligente</title>
+  <title>Omori.Fin // Controle Financeiro Inteligente</title>
   <!-- FontAwesome para Ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Folha de Estilos Customizada -->
   <link rel="stylesheet" href="style.css">
   <!-- Chart.js CDN para Gráficos Dinâmicos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase Compat SDK CDNs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+  <!-- TELA DE LOGIN NEON (MODO NUVEM ATIVO E DESLOGADO) -->
+  <div id="loginScreen" class="login-overlay" style="display: none;">
+    <div class="login-card">
+      <div class="brand" style="margin-bottom: 1.5rem; justify-content: center;">
+        <div class="brand-icon">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="brand-text">Omori<span>.Fin</span> Cloud</div>
+      </div>
+      
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.25rem;">Acesse sua Conta Sincronizada</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Seus dados na nuvem, disponíveis em qualquer lugar</p>
+      </div>
+      
+      <form id="formLogin" onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="loginEmail">E-mail</label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"><i class="fa-solid fa-envelope"></i></span>
+            <input type="email" id="loginEmail" placeholder="seu@email.com" style="padding-left: 2.5rem; width: 100%;" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="loginPassword">Senha</label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"><i class="fa-solid fa-lock"></i></span>
+            <input type="password" id="loginPassword" placeholder="Sua senha secreta" style="padding-left: 2.5rem; width: 100%;" required>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">
+            <i class="fa-solid fa-right-to-bracket"></i> Entrar
+          </button>
+          <button type="button" class="btn btn-success" onclick="handleSignUpSubmit()" style="flex: 1; justify-content: center;">
+            <i class="fa-solid fa-user-plus"></i> Registrar
+          </button>
+        </div>
+      </form>
+      
+      <div style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <button class="btn btn-secondary btn-sm" onclick="disableCloudMode()" style="font-size: 0.75rem; justify-content: center; width: 100%;">
+          <i class="fa-solid fa-cloud-slash"></i> Voltar para Modo Local Offline
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ASSISTENTE DE CONFIGURAÇÃO (ONBOARDING WIZARD) -->
   <div id="onboardingWizard" class="onboarding-container" style="display: none;">
@@ -21,7 +74,7 @@
           <div class="brand-icon">
             <i class="fa-solid fa-bolt"></i>
           </div>
-          <div class="brand-text">Neon<span>Fi</span> Setup</div>
+          <div class="brand-text">Omori<span>.Fin</span> Setup</div>
         </div>
         <div class="onboarding-progress-container" style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; margin-bottom:0.75rem;">
           <div class="onboarding-progress-bar" id="wizardProgressBar" style="width: 14%; height:100%; background:linear-gradient(to right, var(--neon-cyan), var(--neon-purple)); box-shadow:0 0 10px var(--neon-cyan-glow); transition: width 0.3s;"></div>
@@ -345,7 +398,7 @@
         <div class="brand-icon">
           <i class="fa-solid fa-bolt"></i>
         </div>
-        <div class="brand-text">Neon<span>Fi</span></div>
+        <div class="brand-text">Omori<span>.Fin</span></div>
       </div>
       
       <nav class="nav-menu">
@@ -407,9 +460,16 @@
             <span class="profile-role">Plano Financeiro Ativo</span>
           </div>
         </div>
-        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button class="btn btn-secondary btn-sm" onclick="resetToMockData()" style="flex: 1; font-size: 0.7rem; padding: 0.35rem 0.5rem; justify-content: center;" title="Restaurar dados de demonstração">Demo</button>
           <button class="btn btn-danger btn-sm" onclick="clearAllData()" style="flex: 1; font-size: 0.7rem; padding: 0.35rem 0.5rem; justify-content: center;" title="Zerar todos os dados">Zerar</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-config-cloud')" style="width: 100%; font-size: 0.7rem; padding: 0.35rem 0.5rem; justify-content: center; margin-top: 0.25rem;" title="Configurar Nuvem / Login"><i class="fa-solid fa-cloud"></i> Configurar Nuvem</button>
+        </div>
+        
+        <div id="cloudStatusIndicator" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.7rem; color: var(--neon-cyan); background: rgba(0, 240, 255, 0.05); padding: 0.4rem 0.6rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.15); width: 100%;">
+          <i class="fa-solid fa-cloud"></i>
+          <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Nuvem Conectada</span>
+          <button onclick="handleLogout()" style="margin-left: auto; background: none; border: none; color: var(--neon-pink); cursor: pointer; display: flex; align-items: center; padding: 0;" title="Sair da conta"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
       </div>
     </aside>
@@ -1318,6 +1378,46 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal('modal-save-goal')">Cancelar</button>
           <button type="submit" class="btn btn-success">Efetuar Aporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÃO DE NUVEM -->
+  <div class="modal-overlay" id="modal-config-cloud">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-cloud color-cyan"></i> Configurar Nuvem (Firebase)</h3>
+        <button class="modal-close" onclick="closeModal('modal-config-cloud')">&times;</button>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.4;">
+        <p style="margin-bottom: 0.5rem;">Ao configurar sua própria nuvem grátis no Firebase (Google), o aplicativo sincroniza seus dados em tempo real entre o celular e o computador!</p>
+        <div style="background: rgba(0, 240, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.15); padding: 0.75rem; border-radius: 8px;">
+          <strong>Passo a passo rápido:</strong>
+          <ol style="margin-left: 1.25rem; margin-top: 0.25rem;">
+            <li>Crie uma conta gratuita em <a href="https://console.firebase.google.com/" target="_blank" style="color: var(--neon-cyan); text-decoration: underline;">Firebase Console</a>.</li>
+            <li>Crie um projeto e adicione um app <strong>Web (&lt;/&gt;)</strong>.</li>
+            <li>Copie o objeto <code>firebaseConfig</code> fornecido pelo Firebase.</li>
+            <li>Ative o <strong>Authentication (E-mail/Senha)</strong> e o <strong>Firestore Database</strong> no console do Firebase.</li>
+          </ol>
+        </div>
+      </div>
+      <form id="formCloudConfig" onsubmit="handleCloudConfigSubmit(event)">
+        <div class="form-group">
+          <label for="cloudFirebaseConfig">Cole o firebaseConfig aqui (formato JSON ou Javascript)</label>
+          <textarea id="cloudFirebaseConfig" rows="8" placeholder='Exemplo:
+{
+  "apiKey": "AIzaSy...",
+  "authDomain": "seu-app.firebaseapp.com",
+  "projectId": "seu-app",
+  "storageBucket": "seu-app.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' style="font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.4; resize: vertical; width: 100%;" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-config-cloud')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar e Conectar Nuvem</button>
         </div>
       </form>
     </div>
