@@ -159,41 +159,68 @@ function setupCloudSync(uid) {
       
       // Sincroniza também com o local storage local para backup offline
       localStorage.setItem('neonfi_state', JSON.stringify(state));
-      localStorage.setItem('neonfi_onboarded', 'true');
       
-      // Garante que o cartão selecionado permaneça válido
-      if (state.creditCards && state.creditCards.length > 0) {
-        if (!selectedCardId || !state.creditCards.find(c => c.id === selectedCardId)) {
-          selectedCardId = state.creditCards[0].id;
+      // Verifica se o estado da nuvem é um perfil onboardado (completo)
+      if (state.profile && state.profile.name) {
+        localStorage.setItem('neonfi_onboarded', 'true');
+        
+        // Garante que o cartão selecionado permaneça válido
+        if (state.creditCards && state.creditCards.length > 0) {
+          if (!selectedCardId || !state.creditCards.find(c => c.id === selectedCardId)) {
+            selectedCardId = state.creditCards[0].id;
+          }
+        } else {
+          selectedCardId = null;
         }
+        
+        // Oculta telas de login/onboarding e exibe o dashboard principal
+        if (document.getElementById('loginScreen')) {
+          document.getElementById('loginScreen').style.display = 'none';
+        }
+        if (document.getElementById('onboardingWizard')) {
+          document.getElementById('onboardingWizard').style.display = 'none';
+        }
+        document.querySelector('.app-container').style.display = 'grid';
       } else {
-        selectedCardId = null;
+        // Se a nuvem tem dados, mas não estão onboardados (estado limpo)
+        localStorage.setItem('neonfi_onboarded', 'false');
+        
+        if (document.getElementById('loginScreen')) {
+          document.getElementById('loginScreen').style.display = 'none';
+        }
+        document.querySelector('.app-container').style.display = 'none';
+        document.getElementById('onboardingWizard').style.display = 'flex';
+        
+        currentWizardStep = 1;
+        updateWizardUI();
       }
-      
-      // Oculta telas de login/onboarding e exibe o dashboard principal
-      if (document.getElementById('loginScreen')) {
-        document.getElementById('loginScreen').style.display = 'none';
-      }
-      if (document.getElementById('onboardingWizard')) {
-        document.getElementById('onboardingWizard').style.display = 'none';
-      }
-      document.querySelector('.app-container').style.display = 'grid';
       
       renderApp();
       isSyncingFromCloud = false;
     } else {
-      console.log("Documento não encontrado na nuvem para este usuário. Inicializando com dados locais...");
-      // Se o usuário acabou de logar e não tem dados na nuvem, mas tem dados offline locais,
-      // nós enviamos os dados offline dele para a nuvem para não perder o histórico!
-      let stateToUpload = state;
-      const onboarded = localStorage.getItem('neonfi_onboarded');
+      console.log("Documento não encontrado na nuvem para este usuário.");
       
-      if (onboarded !== 'true' || !state.profile || !state.profile.name) {
-        // Se não tem cadastro local, inicializa com o template inicial padrão
-        stateToUpload = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+      // Caso 1: O usuário já completou o onboarding localmente
+      const localOnboarded = localStorage.getItem('neonfi_onboarded');
+      if (localOnboarded === 'true' && state.profile && state.profile.name) {
+        console.log("Sincronizando dados locais existentes para a nuvem...");
+        uploadStateToCloud(state);
+      } else {
+        // Caso 2: Novo usuário sem dados locais e sem dados na nuvem -> Abre o Onboarding Wizard!
+        console.log("Novo usuário em nuvem. Direcionando para o Assistente de Configuração...");
+        
+        localStorage.setItem('neonfi_onboarded', 'false');
+        state = JSON.parse(JSON.stringify(window.EMPTY_TEMPLATE));
+        
+        if (document.getElementById('loginScreen')) {
+          document.getElementById('loginScreen').style.display = 'none';
+        }
+        document.querySelector('.app-container').style.display = 'none';
+        document.getElementById('onboardingWizard').style.display = 'flex';
+        
+        currentWizardStep = 1;
+        updateWizardUI();
       }
-      
-      uploadStateToCloud(stateToUpload);
     }
   }, (error) => {
     console.error("Erro na escuta da nuvem Firestore:", error);
