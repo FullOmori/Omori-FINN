@@ -87,21 +87,26 @@ function initAppState() {
   if (document.getElementById('cloudStatusIndicator')) {
     document.getElementById('cloudStatusIndicator').style.display = 'none';
   }
-  if (document.getElementById('loginScreen')) {
-    document.getElementById('loginScreen').style.display = 'none';
-  }
   
   const onboarded = localStorage.getItem('neonfi_onboarded');
   if (onboarded === 'true') {
+    // Usuário já cadastrado localmente: vai direto para o dashboard
+    if (document.getElementById('loginScreen')) {
+      document.getElementById('loginScreen').style.display = 'none';
+    }
     document.querySelector('.app-container').style.display = 'grid';
     document.getElementById('onboardingWizard').style.display = 'none';
     loadLocalStateFallback();
   } else {
+    // Novo usuário offline: exibe a tela de login inicial como gateway primeiro!
+    if (document.getElementById('loginScreen')) {
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
     document.querySelector('.app-container').style.display = 'none';
-    document.getElementById('onboardingWizard').style.display = 'flex';
+    document.getElementById('onboardingWizard').style.display = 'none';
+    
+    // Inicializa template vazio
     state = JSON.parse(JSON.stringify(window.EMPTY_TEMPLATE));
-    currentWizardStep = 1;
-    updateWizardUI();
   }
 }
 
