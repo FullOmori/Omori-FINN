@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeonFi // Controle Financeiro Inteligente</title>
+  <!-- FontAwesome para Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Folha de Estilos Customizada -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js CDN para Gráficos Dinâmicos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ASSISTENTE DE CONFIGURAÇÃO (ONBOARDING WIZARD) -->
+  <div id="onboardingWizard" class="onboarding-container" style="display: none;">
+    <div class="onboarding-card">
+      <div class="onboarding-header">
+        <div class="brand" style="margin-bottom:1rem; justify-content:center;">
+          <div class="brand-icon">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div class="brand-text">Neon<span>Fi</span> Setup</div>
+        </div>
+        <div class="onboarding-progress-container" style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; margin-bottom:0.75rem;">
+          <div class="onboarding-progress-bar" id="wizardProgressBar" style="width: 14%; height:100%; background:linear-gradient(to right, var(--neon-cyan), var(--neon-purple)); box-shadow:0 0 10px var(--neon-cyan-glow); transition: width 0.3s;"></div>
+        </div>
+        <div class="onboarding-step-indicator" id="wizardStepIndicator" style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; letter-spacing:0.5px; text-align:center;">Passo 1 de 7: Perfil</div>
+      </div>
+      
+      <div class="onboarding-body" style="margin-top:1.5rem; min-height: 250px;">
+        <!-- Passo 1: Perfil -->
+        <div class="wizard-step active" data-step="1">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-user color-cyan"></i> Identificação e Perfil</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.25rem;">Insira seus dados pessoais básicos e como você recebe dinheiro.</p>
+          <div class="form-group">
+            <label for="setupName">Seu Nome Completo</label>
+            <input type="text" id="setupName" placeholder="Ex: Rafael Omori" required>
+          </div>
+          <div class="form-group">
+            <label for="setupBalancePF">Quanto você tem hoje na conta PF (Pessoa Física)?</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); color: var(--text-muted); font-size: 0.9rem;">R$</span>
+              <input type="number" id="setupBalancePF" step="0.01" value="0.00" style="padding-left: 2.5rem; width:100%;" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="setupPaydayType">Regra do seu dia de pagamento</label>
+            <select id="setupPaydayType">
+              <option value="monthly_5th_business">5º Dia Útil do Mês</option>
+              <option value="weekly_friday">Toda Sexta-feira (5º Dia Útil da Semana)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Passo 2: Configuração PJ -->
+        <div class="wizard-step" data-step="2" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-building color-green"></i> Estrutura da sua PJ</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.25rem;">Seu controle de faturamento, impostos e custos da sua empresa.</p>
+          <div class="form-group">
+            <label for="setupBalancePJ">Qual o saldo disponível atual na conta PJ?</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); color: var(--text-muted); font-size: 0.9rem;">R$</span>
+              <input type="number" id="setupBalancePJ" step="0.01" value="0.00" style="padding-left: 2.5rem; width:100%;" required>
+            </div>
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label for="setupDasRate">Imposto Simples Nacional (%)</label>
+              <input type="number" id="setupDasRate" step="0.1" value="6.0" required>
+            </div>
+            <div class="form-group">
+              <label for="setupAccounting">Mensalidade Contabilidade (R$)</label>
+              <input type="number" id="setupAccounting" step="0.01" value="0.00" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="setupBankFee">Tarifa Bancária Mensal PJ (R$)</label>
+            <input type="number" id="setupBankFee" step="0.01" value="0.00" required>
+          </div>
+        </div>
+
+        <!-- Passo 3: Cartões de Crédito -->
+        <div class="wizard-step" data-step="3" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-credit-card color-pink"></i> Cartões de Crédito</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">Cadastre seus cartões de crédito. Eles integram diretamente com o seu orçamento.</p>
+          
+          <div class="table-wrapper" style="max-height: 120px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Limite</th>
+                  <th>Vence</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="setupCardsList">
+                <!-- JS dynamically populates -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem; border-radius: 12px;">
+            <h4 style="font-size:0.85rem; margin-bottom: 0.75rem; color:#fff;"><i class="fa-solid fa-plus color-pink"></i> Adicionar Cartão</h4>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="scName">Instituição (Nome)</label>
+                <input type="text" id="scName" placeholder="Ex: Nubank">
+              </div>
+              <div class="form-group">
+                <label for="scLimit">Limite Total (R$)</label>
+                <input type="number" id="scLimit" step="0.01" placeholder="0,00">
+              </div>
+            </div>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="scClose">Dia Fechamento</label>
+                <input type="number" id="scClose" min="1" max="31" placeholder="28">
+              </div>
+              <div class="form-group">
+                <label for="scDue">Dia Vencimento</label>
+                <input type="number" id="scDue" min="1" max="31" placeholder="5">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="scColor">Cor do Cartão</label>
+              <select id="scColor">
+                <option value="#a020f0">Roxo Neon (Nubank)</option>
+                <option value="#ff8c00">Laranja Neon (Inter)</option>
+                <option value="#00f0ff">Azul/Ciano Neon (Itaú)</option>
+                <option value="#ff007f">Pink Neon</option>
+                <option value="#39ff14">Verde Neon</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addCardInSetup()" style="width: 100%;">
+              <i class="fa-solid fa-check"></i> Adicionar Cartão
+            </button>
+          </div>
+        </div>
+
+        <!-- Passo 4: Contas Fixas -->
+        <div class="wizard-step" data-step="4" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-calendar-days color-orange"></i> Contas Fixas Mensais</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">Cadastre contas recorrentes como aluguel, condomínio, luz, internet, etc.</p>
+          
+          <div class="table-wrapper" style="max-height: 120px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Valor</th>
+                  <th>Vence Dia</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="setupBillsList">
+                <!-- JS dynamically populates -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem; border-radius: 12px;">
+            <h4 style="font-size:0.85rem; margin-bottom: 0.75rem; color:#fff;"><i class="fa-solid fa-plus color-orange"></i> Adicionar Conta</h4>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="sbName">Nome do Boleto</label>
+                <input type="text" id="sbName" placeholder="Ex: Aluguel">
+              </div>
+              <div class="form-group">
+                <label for="sbAmount">Valor da Conta</label>
+                <input type="number" id="sbAmount" step="0.01" placeholder="0,00">
+              </div>
+            </div>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="sbDue">Dia de Vencimento</label>
+                <input type="number" id="sbDue" min="1" max="31" placeholder="Ex: 10">
+              </div>
+              <div class="form-group">
+                <label for="sbCategory">Categoria</label>
+                <select id="sbCategory">
+                  <option value="Moradia">Moradia</option>
+                  <option value="Serviços públicos">Serviços públicos</option>
+                  <option value="Saúde">Saúde</option>
+                  <option value="Alimentação">Alimentação</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Lazer">Lazer</option>
+                  <option value="Tecnologia">Tecnologia</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addBillInSetup()" style="width: 100%;">
+              <i class="fa-solid fa-check"></i> Adicionar Conta Fixa
+            </button>
+          </div>
+        </div>
+
+        <!-- Passo 5: Dívidas -->
+        <div class="wizard-step" data-step="5" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-triangle-exclamation color-pink"></i> Empréstimos e Dívidas</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">Mapeie empréstimos bancários e dívidas de cartão. O simulador ajudará a acelerar a quitação.</p>
+          
+          <div class="table-wrapper" style="max-height: 120px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Saldo</th>
+                  <th>Taxa (%)</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="setupDebtsList">
+                <!-- JS dynamically populates -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem; border-radius: 12px;">
+            <h4 style="font-size:0.85rem; margin-bottom: 0.75rem; color:#fff;"><i class="fa-solid fa-plus color-pink"></i> Adicionar Dívida</h4>
+            <div class="form-group">
+              <label for="sdName">Nome do Credor / Dívida</label>
+              <input type="text" id="sdName" placeholder="Ex: Cheque Especial Itaú">
+            </div>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="sdBalance">Saldo Devedor Atual</label>
+                <input type="number" id="sdBalance" step="0.01" placeholder="0,00">
+              </div>
+              <div class="form-group">
+                <label for="sdRate">Taxa Juros Mensal (%)</label>
+                <input type="number" id="sdRate" step="0.01" placeholder="Ex: 8.5">
+              </div>
+            </div>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="sdMonthly">Pagamento Mensal (Parcela)</label>
+                <input type="number" id="sdMonthly" step="0.01" placeholder="Ex: 200,00">
+              </div>
+              <div class="form-group">
+                <label for="sdPriority">Prioridade de Juros</label>
+                <select id="sdPriority">
+                  <option value="high">Alta (Juros abusivos)</option>
+                  <option value="medium">Média (Financiamento regular)</option>
+                  <option value="low">Baixa (Taxa zero/Amigos)</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addDebtInSetup()" style="width: 100%;">
+              <i class="fa-solid fa-check"></i> Adicionar Dívida
+            </button>
+          </div>
+        </div>
+
+        <!-- Passo 6: Metas de Poupança -->
+        <div class="wizard-step" data-step="6" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-bullseye color-green"></i> Reserva e Metas</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">Crie metas para se motivar e poupar dinheiro sistematicamente.</p>
+          
+          <div class="table-wrapper" style="max-height: 120px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Meta</th>
+                  <th>Objetivo</th>
+                  <th>Guardado</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="setupGoalsList">
+                <!-- JS dynamically populates -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem; border-radius: 12px;">
+            <h4 style="font-size:0.85rem; margin-bottom: 0.75rem; color:#fff;"><i class="fa-solid fa-plus color-green"></i> Adicionar Meta</h4>
+            <div class="form-group">
+              <label for="sgName">Nome do Objetivo</label>
+              <input type="text" id="sgName" placeholder="Ex: Reserva de Emergência">
+            </div>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="sgTarget">Valor Objetivo (R$)</label>
+                <input type="number" id="sgTarget" step="0.01" placeholder="Ex: 15000,00">
+              </div>
+              <div class="form-group">
+                <label for="sgCurrent">Valor Guardado Inicial</label>
+                <input type="number" id="sgCurrent" step="0.01" value="0.00">
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addGoalInSetup()" style="width: 100%;">
+              <i class="fa-solid fa-check"></i> Adicionar Meta
+            </button>
+          </div>
+        </div>
+
+        <!-- Passo 7: Conclusão -->
+        <div class="wizard-step" data-step="7" style="display:none;">
+          <h3 style="margin-bottom:0.5rem; font-size:1.15rem;"><i class="fa-solid fa-circle-check color-cyan"></i> Revisão de Cadastro</h3>
+          <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">Tudo pronto para iniciarmos seu planejamento. Confira os dados informados:</p>
+          
+          <div style="background: rgba(0, 240, 255, 0.05); border: 1px dashed rgba(0, 240, 255, 0.3); padding: 1.25rem; border-radius: 12px; display:flex; flex-direction:column; gap:0.65rem; text-align:left; margin-bottom:1.5rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Nome:</span> <strong id="swName" style="color: #fff;">-</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Saldo Inicial PF:</span> <strong id="swBalancePF" class="color-green">-</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Saldo Inicial PJ:</span> <strong id="swBalancePJ" class="color-cyan">-</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Cartões Configurados:</span> <strong id="swCardsCount" style="color: #fff;">0</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Contas Cadastradas:</span> <strong id="swBillsCount" style="color: #fff;">0</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+              <span>Dívidas Declaradas:</span> <strong id="swDebtsCount" class="color-pink">0</strong>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--text-muted); text-align:center;">
+            Ao clicar em "Finalizar Setup", as informações serão consolidadas e você acessará o painel.
+          </p>
+        </div>
+      </div>
+
+      <div class="onboarding-footer" style="display:flex; justify-content:space-between; margin-top:2rem; border-top:1px solid var(--border-color); padding-top:1.25rem;">
+        <button class="btn btn-secondary" id="wizardBtnPrev" onclick="prevWizardStep()"><i class="fa-solid fa-chevron-left"></i> Voltar</button>
+        <button class="btn btn-secondary btn-sm" id="wizardBtnDemo" onclick="skipWizardWithDemo()" style="margin-right:auto; font-size:0.75rem;">Carregar Demonstração</button>
+        <button class="btn btn-primary" id="wizardBtnNext" onclick="nextWizardStep()">Avançar <i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container" style="display: none;">
+    
+    <!-- BARRA LATERAL (SIDEBAR) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="brand-text">Neon<span>Fi</span></div>
+      </div>
+      
+      <nav class="nav-menu">
+        <li class="nav-item">
+          <a class="nav-link active" data-tab="dashboard">
+            <i class="fa-solid fa-chart-pie"></i>
+            Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="ai-advisor">
+            <i class="fa-solid fa-brain"></i>
+            Conselheiro AI
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="pj-pf">
+            <i class="fa-solid fa-shuffle"></i>
+            Fluxo PJ ➔ PF
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="payments">
+            <i class="fa-solid fa-calendar-days"></i>
+            Contas a Pagar
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="credit-cards">
+            <i class="fa-solid fa-credit-card"></i>
+            Cartões de Crédito
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="debts">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Quitar Dívidas
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="goals">
+            <i class="fa-solid fa-bullseye"></i>
+            Metas & Poupar
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-tab="transactions">
+            <i class="fa-solid fa-list-check"></i>
+            Extrato PF
+          </a>
+        </li>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="profile-card">
+          <div class="profile-img" id="profileInitials">RO</div>
+          <div class="profile-info">
+            <span class="profile-name" id="profileName">Rafael Omori</span>
+            <span class="profile-role">Plano Financeiro Ativo</span>
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary btn-sm" onclick="resetToMockData()" style="flex: 1; font-size: 0.7rem; padding: 0.35rem 0.5rem; justify-content: center;" title="Restaurar dados de demonstração">Demo</button>
+          <button class="btn btn-danger btn-sm" onclick="clearAllData()" style="flex: 1; font-size: 0.7rem; padding: 0.35rem 0.5rem; justify-content: center;" title="Zerar todos os dados">Zerar</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+      
+      <!-- CABEÇALHO -->
+      <header class="header">
+        <div class="welcome-section">
+          <h1 id="welcomeTitle">Olá, Rafael!</h1>
+          <p>Seja bem-vindo ao seu centro de controle financeiro.</p>
+        </div>
+        
+        <div class="header-actions">
+          <!-- Widget do 5º Dia Útil -->
+          <div class="payday-widget" id="paydayWidget" title="Clique para configurar o dia de pagamento">
+            <i class="fa-solid fa-money-check-dollar payday-icon"></i>
+            <div class="payday-text">
+              <span class="payday-label">Próximo Pagamento</span>
+              <span class="payday-value" id="nextPaydayVal">Carregando...</span>
+            </div>
+          </div>
+          
+          <button class="btn btn-primary" onclick="openModal('modal-add-transaction')">
+            <i class="fa-solid fa-plus"></i> Novo Lançamento
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO DAS ABAS (SPA) -->
+      
+      <!-- 1. DASHBOARD -->
+      <div id="dashboard" class="tab-content active">
+        <!-- Cards de Métricas Principais -->
+        <div class="dashboard-grid">
+          <div class="card glow-cyan">
+            <div class="card-header">
+              <span>Saldo Conta PF</span>
+              <div class="card-icon icon-cyan"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+            <div class="card-value color-cyan" id="dashBalancePF">R$ 0,00</div>
+            <div class="card-desc">
+              <span class="card-trend-down" id="dashBalancePFDesc">Abaixo do recomendado</span>
+            </div>
+          </div>
+          
+          <div class="card glow-green">
+            <div class="card-header">
+              <span>Saldo Disponível PJ</span>
+              <div class="card-icon icon-green"><i class="fa-solid fa-building"></i></div>
+            </div>
+            <div class="card-value color-green" id="dashBalancePJ">R$ 0,00</div>
+            <div class="card-desc">
+              <span>Aguardando transferência</span>
+            </div>
+          </div>
+
+          <div class="card glow-pink">
+            <div class="card-header">
+              <span>Faturas em Aberto</span>
+              <div class="card-icon icon-pink"><i class="fa-solid fa-credit-card"></i></div>
+            </div>
+            <div class="card-value color-pink" id="dashCardsTotal">R$ 0,00</div>
+            <div class="card-desc" id="dashCardsDesc">
+              <span>Nubank & Inter acumulados</span>
+            </div>
+          </div>
+
+          <div class="card glow-orange">
+            <div class="card-header">
+              <span>Total de Dívidas</span>
+              <div class="card-icon icon-orange"><i class="fa-solid fa-fire"></i></div>
+            </div>
+            <div class="card-value color-orange" id="dashDebtsTotal">R$ 0,00</div>
+            <div class="card-desc" id="dashDebtsDesc">
+              <span class="card-trend-down"><i class="fa-solid fa-circle-exclamation"></i> Juros altos rodando</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Área de Gráficos -->
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <h2 class="section-title"><i class="fa-solid fa-chart-line color-cyan"></i> Receitas vs Despesas PF</h2>
+            <div class="chart-container">
+              <canvas id="chartIncomesExpenses"></canvas>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <h2 class="section-title"><i class="fa-solid fa-chart-pie color-pink"></i> Gastos por Categoria</h2>
+            <div class="chart-container">
+              <canvas id="chartCategories"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alertas Urgentes e Ações -->
+        <div class="grid-2col">
+          <!-- Bloco de Ações e Conselhos Rápidos -->
+          <div class="card">
+            <h2 class="section-title"><i class="fa-solid fa-wand-magic-sparkles color-cyan"></i> Assistente Neon</h2>
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+              <div style="background: rgba(0, 240, 255, 0.05); padding: 1rem; border-radius: 12px; border-left: 3px solid var(--neon-cyan);">
+                <p style="font-size: 0.9rem; line-height: 1.4;" id="assistantFeedback">
+                  Avaliando seus dados... Insira mais transações para gerar sugestões.
+                </p>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <button class="btn btn-secondary btn-sm" onclick="switchTab('pj-pf')">
+                  <i class="fa-solid fa-reply-all"></i> Transferir PJ
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="switchTab('debts')">
+                  <i class="fa-solid fa-arrow-down-up-lock"></i> Pagar Dívidas
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lançamentos Recentes -->
+          <div class="card">
+            <h2 class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Atividades Recentes</h2>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTransactionsTable">
+                  <!-- JS dynamically fills this -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSELHEIRO AI TAB -->
+      <div id="ai-advisor" class="tab-content">
+        <h2 class="section-title"><i class="fa-solid fa-brain color-cyan"></i> Conselheiro Financeiro AI</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          Converse com o assistente inteligente para simular manobras financeiras e planejar o curto, médio e longo prazo, principalmente em situações de aperto.
+        </p>
+
+        <div class="charts-grid" style="grid-template-columns: 3fr 2fr; margin-bottom: 2rem;">
+          <!-- Painel do Chat -->
+          <div class="card" style="display:flex; flex-direction:column; height: 520px; padding: 1.5rem 1.5rem 1rem 1.5rem;">
+            <div id="chatMessages" style="flex-grow:1; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; padding-right:0.5rem; margin-bottom:1rem;">
+              <!-- Mensagens iniciais inseridas dinamicamente pelo JS -->
+            </div>
+            
+            <!-- Sugestões Rápidas -->
+            <div id="chatSuggestions" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+              <!-- Botões rápidos de ação -->
+            </div>
+
+            <!-- Input do Chat -->
+            <form id="formChatAdvisor" onsubmit="handleChatSubmit(event)" style="display:flex; gap:0.75rem;">
+              <input type="text" id="chatInput" placeholder="Pergunte algo ou simule uma manobra..." style="flex-grow:1; background: rgba(11, 12, 19, 0.9);" autocomplete="off" required>
+              <button type="submit" class="btn btn-primary" style="justify-content: center; width: 50px;">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </form>
+          </div>
+
+          <!-- Painel de Projeções de Impacto Temporal -->
+          <div style="display:flex; flex-direction:column; gap:1.25rem;">
+            <div class="card" style="border-left: 4px solid var(--neon-cyan); height: 160px; display: flex; flex-direction: column; justify-content: center;">
+              <h3 style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 0.5rem; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-hourglass-start"></i> Curto Prazo (1 - 3 Meses)</h3>
+              <p id="impactShortTerm" style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main); overflow-y: auto;">
+                Selecione uma manobra ou converse com o robô para gerar previsões de fluxo de caixa imediatas.
+              </p>
+            </div>
+
+            <div class="card" style="border-left: 4px solid var(--neon-orange); height: 160px; display: flex; flex-direction: column; justify-content: center;">
+              <h3 style="font-size: 0.95rem; color: var(--neon-orange); margin-bottom: 0.5rem; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-hourglass-half"></i> Médio Prazo (6 Meses)</h3>
+              <p id="impactMediumTerm" style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main); overflow-y: auto;">
+                Observe o acúmulo de juros ou liberação de limites que ocorrerão no médio prazo.
+              </p>
+            </div>
+
+            <div class="card" style="border-left: 4px solid var(--neon-green); height: 160px; display: flex; flex-direction: column; justify-content: center;">
+              <h3 style="font-size: 0.95rem; color: var(--neon-green); margin-bottom: 0.5rem; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-hourglass-end"></i> Longo Prazo (1 Ano+)</h3>
+              <p id="impactLongTerm" style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main); overflow-y: auto;">
+                Compare o saldo acumulado total e o valor total jogado fora com juros no fim de 12 meses.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. FLUXO PJ -> PF -->
+      <div id="pj-pf" class="tab-content">
+        <h2 class="section-title"><i class="fa-solid fa-shuffle color-cyan"></i> Transição PJ para PF</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          Você recebe como Pessoa Jurídica, paga os impostos e o restante transfere para sua Pessoa Física para gerenciar as despesas reais. Monitore este fluxo para saber seu lucro real.
+        </p>
+
+        <!-- Diagrama Interativo do Fluxo -->
+        <div class="flow-diagram-container">
+          <div class="flow-box pj-side">
+            <h3 style="color: var(--neon-cyan); margin-bottom: 0.5rem;">CONTA PJ</h3>
+            <div class="mono" style="font-size: 1.5rem; font-weight: 700;" id="flowPjBalance">R$ 0,00</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Faturamento bruto acumulado</p>
+          </div>
+
+          <div class="flow-arrow">
+            <i class="fa-solid fa-angles-right"></i>
+            <span class="flow-arrow-text">Transferir</span>
+          </div>
+
+          <div class="flow-box pf-side">
+            <h3 style="color: var(--neon-green); margin-bottom: 0.5rem;">CONTA PF</h3>
+            <div class="mono" style="font-size: 1.5rem; font-weight: 700;" id="flowPfBalance">R$ 0,00</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Seu dinheiro real de gastos</p>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Configuração e Faturamento PJ -->
+          <div class="card">
+            <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem; color: #fff;">1. Faturamento PJ & Custos</h3>
+            <div class="table-wrapper" style="margin-bottom: 1.5rem;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="pjInvoicesTable">
+                  <!-- JS Invoices -->
+                </tbody>
+              </table>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-invoice')">
+                <i class="fa-solid fa-plus"></i> Novo Faturamento
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="openModal('modal-edit-taxes')">
+                <i class="fa-solid fa-gears"></i> Alíquotas e Custos
+              </button>
+            </div>
+          </div>
+
+          <!-- Transferência / Distribuição -->
+          <div class="card">
+            <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem; color: #fff;">2. Efetuar Transferência para PF</h3>
+            <form id="formPjTransfer" onsubmit="handlePjTransfer(event)">
+              <div class="form-group">
+                <label for="transferAmount">Valor a Transferir (Pró-labore/Distribuição)</label>
+                <div style="position: relative;">
+                  <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); color: var(--text-muted);">R$</span>
+                  <input type="number" id="transferAmount" step="0.01" style="padding-left: 2.5rem; width: 100%;" required>
+                </div>
+              </div>
+
+              <!-- Simulação em tempo real -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem; border-radius: 10px; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem;">Simulação de Dedutivos PJ</h4>
+                <div class="tax-item">
+                  <span>Imposto Estimado (<span id="simDasRate">0</span>%)</span>
+                  <span class="red" id="simDasValue">- R$ 0,00</span>
+                </div>
+                <div class="tax-item">
+                  <span>Contabilidade Pró-Rata</span>
+                  <span class="red" id="simAccountingValue">- R$ 0,00</span>
+                </div>
+                <div class="tax-item" style="border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem; font-weight: 700;">
+                  <span>Líquido a Depositar na PF</span>
+                  <span class="color-green" id="simNetTransfer">R$ 0,00</span>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="width: 100%;">
+                <i class="fa-solid fa-share-from-square"></i> Confirmar Transferência PJ ➔ PF
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. CONTAS A PAGAR -->
+      <div id="payments" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-calendar-days color-orange"></i> Organizador de Pagamentos Mensais</h2>
+          <button class="btn btn-primary" onclick="openModal('modal-add-bill')">
+            <i class="fa-solid fa-plus"></i> Nova Conta
+          </button>
+        </div>
+
+        <div class="calendar-summary-widget">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div class="calendar-summary-text">
+            <span>Seu dia de recebimento (5º dia útil) é focado na quitação de contas básicas. 
+            Você tem <strong id="paydayPendingCount">0 contas</strong> pendentes antes do próximo pagamento, totalizando <strong id="paydayPendingAmount">R$ 0,00</strong>.</span>
+          </div>
+        </div>
+
+        <!-- Filtros de Contas -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
+          <button class="btn btn-secondary btn-sm btn-filter active" data-filter="all" onclick="filterBills('all')">Todas</button>
+          <button class="btn btn-secondary btn-sm btn-filter" data-filter="pending" onclick="filterBills('pending')">Pendentes</button>
+          <button class="btn btn-secondary btn-sm btn-filter" data-filter="paid" onclick="filterBills('paid')">Pagas</button>
+        </div>
+
+        <div class="payment-timeline" id="paymentsListContainer">
+          <!-- JS preenche a lista de contas -->
+        </div>
+      </div>
+
+      <!-- 4. CARTÕES DE CRÉDITO -->
+      <div id="credit-cards" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-credit-card color-pink"></i> Gestão de Cartões de Crédito</h2>
+          <button class="btn btn-primary" onclick="openModal('modal-add-card')">
+            <i class="fa-solid fa-plus"></i> Adicionar Cartão
+          </button>
+        </div>
+
+        <!-- Carrossel de Cartões -->
+        <div class="cards-selector" id="cardsContainer">
+          <!-- JS gera os cartões -->
+        </div>
+
+        <div class="grid-2col">
+          <!-- Detalhes do Cartão Selecionado & Lançamentos -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <h3 id="selectedCardTitle" style="font-size: 1.15rem; color: #fff;">Fatura do Cartão</h3>
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-card-transaction')">
+                <i class="fa-solid fa-plus"></i> Lançar no Cartão
+              </button>
+            </div>
+            
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="cardTransactionsTable">
+                  <!-- JS Transactions -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Compras Parceladas (A longo prazo) -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 1.15rem; color: #fff;"><i class="fa-solid fa-calendar-week color-pink"></i> Compras Parceladas Ativas</h3>
+              <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-installment')">
+                <i class="fa-solid fa-plus"></i> Nova Parcela
+              </button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Compras que comprometem seus limites em meses futuros. O sistema calcula a parcela mensal e insere na fatura automaticamente.
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:0.75rem;" id="cardInstallmentsContainer">
+              <!-- JS parcelas -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. QUITAR DÍVIDAS -->
+      <div id="debts" class="tab-content">
+        <h2 class="section-title"><i class="fa-solid fa-triangle-exclamation color-orange"></i> Plano de Quitação de Dívidas & Empréstimos</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          Organize e simule a quitação de suas dívidas acumuladas. Quando você está "lascado" financeiramente, focar nos juros altos é a melhor alternativa de sobrevivência.
+        </p>
+
+        <div class="grid-2col">
+          <!-- Cadastro de Dívidas -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 1.1rem; color: #fff;">Suas Dívidas Atuais</h3>
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-debt')">
+                <i class="fa-solid fa-plus"></i> Adicionar Dívida
+              </button>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:1rem;" id="debtsListContainer">
+              <!-- JS debts list -->
+            </div>
+          </div>
+
+          <!-- Simulador de Aceleração (Bola de Neve / Avalanche) -->
+          <div class="card debt-simulator-card">
+            <h3 style="font-size: 1.15rem; color: var(--neon-purple); margin-bottom: 0.5rem; text-shadow:0 0 10px rgba(157, 78, 221, 0.4);"><i class="fa-solid fa-gauge-high"></i> Simulador de Aceleração</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+              Selecione o método de quitação e insira um aporte extra mensal para ver o impacto visual de quanto tempo e dinheiro você economizará.
+            </p>
+
+            <div class="form-group">
+              <label for="simulationMethod">Método de Quitação</label>
+              <select id="simulationMethod" onchange="runDebtSimulation()">
+                <option value="avalanche">(Recomendado) Método Avalanche - Juros Altos Primeiro</option>
+                <option value="snowball">Método Bola de Neve - Saldo Menor Primeiro</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="simulationExtraAmount">Aporte Extra Mensal (Economia extra que irá injetar)</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); color: var(--text-muted);">R$</span>
+                <input type="number" id="simulationExtraAmount" value="200" step="50" style="padding-left: 2.5rem; width: 100%;" oninput="runDebtSimulation()">
+              </div>
+            </div>
+
+            <!-- Resultados da Simulação -->
+            <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(157,78,221,0.2); padding: 1.25rem; border-radius: 12px; margin-top: 1.5rem;">
+              <h4 style="font-size: 0.8rem; color: var(--text-main); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Resultado Estimado</h4>
+              
+              <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <span style="color:var(--text-muted);">Tempo Original de Quitação:</span>
+                <span style="font-weight:600;" id="simDebtOriginalMonths">0 meses</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <span style="color:var(--text-muted);">Tempo com Aporte Extra:</span>
+                <span style="font-weight:600; color: var(--neon-cyan);" id="simDebtNewMonths">0 meses</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom: 0.75rem; font-size: 0.9rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem;">
+                <span style="color:var(--text-muted);">Tempo Economizado:</span>
+                <span style="font-weight:700; color: var(--neon-green);" id="simDebtSavedMonths">0 meses mais rápido!</span>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; font-size: 1rem; font-weight: 700;">
+                <span>Economia de Juros Estimada:</span>
+                <span class="color-green" id="simDebtInterestSaved">R$ 0,00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. METAS & POUPAR -->
+      <div id="goals" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-bullseye color-green"></i> Metas Financeiras & Reserva de Emergência</h2>
+          <button class="btn btn-primary" onclick="openModal('modal-add-goal')">
+            <i class="fa-solid fa-plus"></i> Nova Meta
+          </button>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          Defina metas claras. Ter uma "Reserva de Emergência" é o primeiro passo para não precisar recorrer a empréstimos ou cheque especial na próxima emergência.
+        </p>
+
+        <!-- Grid de Metas -->
+        <div class="goal-card-grid" id="goalsListContainer">
+          <!-- JS preenche as metas -->
+        </div>
+      </div>
+
+      <!-- 7. TRANSAÇÕES / EXTRATO PF -->
+      <div id="transactions" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-list-check color-cyan"></i> Extrato de Transações PF</h2>
+          <button class="btn btn-primary" onclick="openModal('modal-add-transaction')">
+            <i class="fa-solid fa-plus"></i> Novo Lançamento
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="pfTransactionsTable">
+                <!-- JS Extrato -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAIS DE CADASTRO -->
+  
+  <!-- MODAL: NOVA TRANSAÇÃO PF -->
+  <div class="modal-overlay" id="modal-add-transaction">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-plus color-cyan"></i> Novo Lançamento PF</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-transaction')">&times;</button>
+      </div>
+      <form id="formAddTransaction" onsubmit="handleAddTransaction(event)">
+        <div class="form-group">
+          <label for="txDesc">Descrição</label>
+          <input type="text" id="txDesc" placeholder="Ex: Mercado da Esquina" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="txAmount">Valor</label>
+            <input type="number" id="txAmount" step="0.01" placeholder="0,00" required>
+          </div>
+          <div class="form-group">
+            <label for="txType">Tipo</label>
+            <select id="txType">
+              <option value="expense">Despesa (Saída)</option>
+              <option value="income">Receita (Entrada)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="txCategory">Categoria</label>
+            <select id="txCategory">
+              <option value="Alimentação">Alimentação</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Moradia">Moradia</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Saúde">Saúde</option>
+              <option value="Tecnologia">Tecnologia</option>
+              <option value="Pró-Labore">Pró-Labore</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="txDate">Data</label>
+            <input type="date" id="txDate" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-transaction')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO FATURAMENTO PJ -->
+  <div class="modal-overlay" id="modal-add-invoice">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-file-invoice-dollar color-cyan"></i> Novo Faturamento PJ</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-invoice')">&times;</button>
+      </div>
+      <form id="formAddInvoice" onsubmit="handleAddInvoice(event)">
+        <div class="form-group">
+          <label for="invClient">Cliente</label>
+          <input type="text" id="invClient" placeholder="Ex: Google Inc." required>
+        </div>
+        <div class="form-group">
+          <label for="invAmount">Valor Bruto</label>
+          <input type="number" id="invAmount" step="0.01" placeholder="0,00" required>
+        </div>
+        <div class="form-group">
+          <label for="invDate">Data de Emissão</label>
+          <input type="date" id="invDate" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-invoice')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Lançar Faturamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÃO DE IMPOSTOS PJ -->
+  <div class="modal-overlay" id="modal-edit-taxes">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-gears color-cyan"></i> Ajustes de Custos PJ</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit-taxes')">&times;</button>
+      </div>
+      <form id="formEditTaxes" onsubmit="handleEditTaxes(event)">
+        <div class="form-group">
+          <label for="taxDasRate">Alíquota DAS / Simples Nacional (%)</label>
+          <input type="number" id="taxDasRate" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label for="taxAccounting">Custo Mensal Contabilidade (R$)</label>
+          <input type="number" id="taxAccounting" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="taxBank">Custo Tarifas Bancárias (R$)</label>
+          <input type="number" id="taxBank" step="0.01" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-taxes')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Ajustes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÃO DIA DO PAGAMENTO -->
+  <div class="modal-overlay" id="modal-config-payday">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-calendar-check color-green"></i> Configurar Recebimento</h3>
+        <button class="modal-close" onclick="closeModal('modal-config-payday')">&times;</button>
+      </div>
+      <form id="formConfigPayday" onsubmit="handleConfigPayday(event)">
+        <div class="form-group">
+          <label for="paydayTypeSelect">Frequência/Regra de Pagamento</label>
+          <select id="paydayTypeSelect">
+            <option value="monthly_5th_business">5º Dia Útil do Mês</option>
+            <option value="weekly_friday">Toda Sexta-feira (5º Dia Útil da Semana)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="paydayGoalPercentInput">Meta de Poupança por Pagamento (%)</label>
+          <input type="number" id="paydayGoalPercentInput" min="0" max="100" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-config-payday')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Configuração</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVA CONTA A PAGAR -->
+  <div class="modal-overlay" id="modal-add-bill">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-calendar-plus color-orange"></i> Adicionar Conta Mensal</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-bill')">&times;</button>
+      </div>
+      <form id="formAddBill" onsubmit="handleAddBill(event)">
+        <div class="form-group">
+          <label for="billName">Nome da Conta / Fornecedor</label>
+          <input type="text" id="billName" placeholder="Ex: Aluguel do Apartamento" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="billAmount">Valor da Conta (R$)</label>
+            <input type="number" id="billAmount" step="0.01" placeholder="0,00" required>
+          </div>
+          <div class="form-group">
+            <label for="billDueDate">Dia de Vencimento (1 a 31)</label>
+            <input type="number" id="billDueDate" min="1" max="31" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="billCategory">Categoria</label>
+          <select id="billCategory">
+            <option value="Moradia">Moradia</option>
+            <option value="Serviços públicos">Serviços públicos</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Tecnologia">Tecnologia</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-bill')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Conta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADICIONAR CARTÃO DE CRÉDITO -->
+  <div class="modal-overlay" id="modal-add-card">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-credit-card color-pink"></i> Novo Cartão de Crédito</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-card')">&times;</button>
+      </div>
+      <form id="formAddCard" onsubmit="handleAddCard(event)">
+        <div class="form-group">
+          <label for="cardName">Nome do Cartão (Instituição)</label>
+          <input type="text" id="cardName" placeholder="Ex: Nubank, Inter, Itaú" required>
+        </div>
+        <div class="form-group">
+          <label for="cardLimit">Limite Total (R$)</label>
+          <input type="number" id="cardLimit" step="0.01" placeholder="0,00" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="cardCloseDay">Dia de Fechamento</label>
+            <input type="number" id="cardCloseDay" min="1" max="31" placeholder="Ex: 28" required>
+          </div>
+          <div class="form-group">
+            <label for="cardDueDay">Dia de Vencimento</label>
+            <input type="number" id="cardDueDay" min="1" max="31" placeholder="Ex: 5" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cardColor">Cor Neon de Destaque</label>
+          <select id="cardColor">
+            <option value="#a020f0">Roxo Neon (Nubank)</option>
+            <option value="#ff8c00">Laranja Neon (Inter)</option>
+            <option value="#00f0ff">Azul/Ciano Neon (Itaú)</option>
+            <option value="#ff007f">Pink Neon</option>
+            <option value="#39ff14">Verde Neon</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-card')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar Cartão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: LANÇAR NO CARTÃO -->
+  <div class="modal-overlay" id="modal-add-card-transaction">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-plus color-pink"></i> Lançar Despesa no Cartão</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-card-transaction')">&times;</button>
+      </div>
+      <form id="formAddCardTransaction" onsubmit="handleAddCardTransaction(event)">
+        <div class="form-group">
+          <label for="cardTxDesc">Descrição</label>
+          <input type="text" id="cardTxDesc" placeholder="Ex: Uber viagem" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="cardTxAmount">Valor (R$)</label>
+            <input type="number" id="cardTxAmount" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="cardTxDate">Data da Compra</label>
+            <input type="date" id="cardTxDate" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cardTxCategory">Categoria</label>
+          <select id="cardTxCategory">
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Assinaturas">Assinaturas</option>
+            <option value="Compras">Compras</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-card-transaction')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Lançar no Cartão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVA COMPRA PARCELADA -->
+  <div class="modal-overlay" id="modal-add-installment">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-calendar-plus color-pink"></i> Agendar Compra Parcelada</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-installment')">&times;</button>
+      </div>
+      <form id="formAddInstallment" onsubmit="handleAddInstallment(event)">
+        <div class="form-group">
+          <label for="instDesc">Descrição do Bem</label>
+          <input type="text" id="instDesc" placeholder="Ex: Notebook Trabalho" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="instTotalAmount">Valor Total (R$)</label>
+            <input type="number" id="instTotalAmount" step="0.01" placeholder="Ex: 1200,00" required>
+          </div>
+          <div class="form-group">
+            <label for="instCount">Número de Parcelas</label>
+            <input type="number" id="instCount" min="2" max="60" placeholder="Ex: 12" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="instDate">Data da Compra</label>
+          <input type="date" id="instDate" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-installment')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Agendar Parcelamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADICIONAR DÍVIDA -->
+  <div class="modal-overlay" id="modal-add-debt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-triangle-exclamation color-orange"></i> Adicionar Dívida</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-debt')">&times;</button>
+      </div>
+      <form id="formAddDebt" onsubmit="handleAddDebt(event)">
+        <div class="form-group">
+          <label for="debtName">Nome do Credor / Dívida</label>
+          <input type="text" id="debtName" placeholder="Ex: Cheque Especial Itaú" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="debtBalance">Saldo Devedor Atual (R$)</label>
+            <input type="number" id="debtBalance" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="debtRate">Taxa de Juros Mensal (%)</label>
+            <input type="number" id="debtRate" step="0.01" required>
+          </div>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="debtMonthly">Valor Parcela / Pagamento Mensal</label>
+            <input type="number" id="debtMonthly" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="debtPriority">Urgência / Prioridade</label>
+            <select id="debtPriority">
+              <option value="high">Alta (Juros abusivos)</option>
+              <option value="medium">Média (Financiamento padrão)</option>
+              <option value="low">Baixa (Parentes / Amigos)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="debtRemaining">Parcelas Restantes (0 se rotativo/aberto)</label>
+            <input type="number" id="debtRemaining" min="0" required>
+          </div>
+          <div class="form-group">
+            <label for="debtTotalInst">Total de Parcelas Contratadas (0 se rotativo)</label>
+            <input type="number" id="debtTotalInst" min="0" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-debt')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar Dívida</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADICIONAR META -->
+  <div class="modal-overlay" id="modal-add-goal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-bullseye color-green"></i> Adicionar Meta de Economia</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-goal')">&times;</button>
+      </div>
+      <form id="formAddGoal" onsubmit="handleAddGoal(event)">
+        <div class="form-group">
+          <label for="goalName">Nome do Objetivo</label>
+          <input type="text" id="goalName" placeholder="Ex: Reserva de Emergência" required>
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="goalTarget">Valor Objetivo (R$)</label>
+            <input type="number" id="goalTarget" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="goalCurrent">Valor Guardado Inicial (R$)</label>
+            <input type="number" id="goalCurrent" step="0.01" value="0" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="goalCategory">Categoria</label>
+          <select id="goalCategory">
+            <option value="Segurança">Segurança (Reserva)</option>
+            <option value="Quitação">Quitação de Dívidas</option>
+            <option value="Investimento">Investimentos</option>
+            <option value="Aquisição">Compra de Bens</option>
+            <option value="Lazer">Lazer / Viagem</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-goal')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Meta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modais de Aportar nas Metas -->
+  <div class="modal-overlay" id="modal-save-goal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color:var(--neon-green);"><i class="fa-solid fa-piggy-bank"></i> Aportar na Meta</h3>
+        <button class="modal-close" onclick="closeModal('modal-save-goal')">&times;</button>
+      </div>
+      <form id="formSaveGoal" onsubmit="handleSaveGoal(event)">
+        <input type="hidden" id="saveGoalId">
+        <div class="form-group">
+          <p id="saveGoalPrompt" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;"></p>
+          <label for="saveGoalAmount">Valor do Aporte (Será deduzido do Saldo PF)</label>
+          <input type="number" id="saveGoalAmount" step="0.01" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-save-goal')">Cancelar</button>
+          <button type="submit" class="btn btn-success">Efetuar Aporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- APLICATIVO JAVASCRIPT -->
+  <!-- Carregando dados falsos primeiro, depois o app principal -->
+  <script src="mockData.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
