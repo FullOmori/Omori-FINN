@@ -6,6 +6,8 @@ let selectedTab = 'dashboard';
 let selectedCardId = null;
 let chartIncomesExpensesInstance = null;
 let chartCategoriesInstance = null;
+let selectedInvoiceMonth = null;
+let selectedInvoiceYear = null;
 
 // Variáveis Globais do Chat AI e Simulações
 let chatHistory = [];
@@ -997,6 +999,51 @@ function deleteBill(billId) {
 }
 
 // ABA: CARTÕES DE CRÉDITO
+// Função auxiliar para determinar o mês/ano da fatura de uma transação com base no fechamento do cartão
+function getTransactionInvoiceMonthYear(dateStr, closeDay) {
+  if (!dateStr) return { month: 0, year: 2026 };
+  const parts = dateStr.split('-');
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1; // 0-indexed no JS
+  const day = parseInt(parts[2]);
+  
+  let invoiceMonth = month;
+  let invoiceYear = year;
+  
+  // Se a compra foi feita após o dia de fechamento, cai na fatura do mês seguinte
+  if (day > closeDay) {
+    invoiceMonth = month + 1;
+    if (invoiceMonth > 11) {
+      invoiceMonth = 0;
+      invoiceYear++;
+    }
+  }
+  return { month: invoiceMonth, year: invoiceYear };
+}
+
+// Função auxiliar para determinar qual parcela de uma compra parcelada está ativa em um determinado mês/ano
+function getInstallmentNumberForMonth(planDate, totalInstallments, closeDay, targetMonth, targetYear) {
+  if (!planDate) return null;
+  const firstInvoice = getTransactionInvoiceMonthYear(planDate, closeDay);
+  
+  // Diferença em meses entre o mês da primeira fatura e o mês alvo
+  const monthsDiff = (targetYear - firstInvoice.year) * 12 + (targetMonth - firstInvoice.month);
+  
+  if (monthsDiff >= 0 && monthsDiff < totalInstallments) {
+    return monthsDiff + 1; // Retorna o número da parcela (1 a totalInstallments)
+  }
+  return null; // Não há parcela ativa nesse período
+}
+
+// Handler global para mudança de mês no dropdown do cartão
+function changeSelectedCardInvoiceMonth(val) {
+  const parts = val.split('-');
+  selectedInvoiceYear = parseInt(parts[0]);
+  selectedInvoiceMonth = parseInt(parts[1]);
+  renderCreditCards();
+}
+
+// ABA: CARTÕES DE CRÉDITO
 function renderCreditCards() {
   const container = document.getElementById('cardsContainer');
   container.innerHTML = '';
@@ -1009,41 +1056,71 @@ function renderCreditCards() {
     return;
   }
   
-  state.creditCards.forEach(card => {
-    // Calcular saldo de fatura atual
-    const txSum = card.transactions.reduce((acc, t) => acc + t.amount, 0);
-    const instSum = card.installments.reduce((acc, inst) => acc + inst.monthlyAmount, 0);
-    const currentInvoice = txSum + instSum;
-    const availableLimit = card.limit - currentInvoice;
-    const usagePercent = Math.min(100, (currentInvoice / card.limit) * 100);
-    const isSelected = card.id === selectedCardId;
+  const card = state.creditCards.find(c => c.id === selectedCardId);
+  if (card && (selectedInvoiceMonth === null || selectedInvoiceYear === null)) {
+    const today = new Date();
+    const activeInvoice = getTransactionInvoiceMonthYear(today.toISOString().split('T')[0], card.closeDay);
+    selectedInvoiceMonth = activeInvoice.month;
+    selectedInvoiceYear = activeInvoice.year;
+  }
+  
+  state.creditCards.forEach(c => {
+    // Calcular faturas dinâmicas especificamente para o mês/ano selecionado!
+    let txSum = 0;
+    c.transactions.forEach(t => {
+      const inv = getTransactionInvoiceMonthYear(t.date, c.closeDay);
+      if (inv.month === selectedInvoiceMonth && inv.year === selectedInvoiceYear) {
+        txSum += t.amount;
+      }
+    });
+    
+    let instSum = 0;
+    c.installments.forEach(inst => {
+      const activeInstNum = getInstallmentNumberForMonth(inst.date, inst.totalInstallments, c.closeDay, selectedInvoiceMonth, selectedInvoiceYear);
+      if (activeInstNum !== null) {
+        instSum += inst.monthlyAmount;
+      }
+    });
+    
+    const invoiceVal = txSum + instSum;
+    const availableLimit = c.limit - invoiceVal;
+    const usagePercent = Math.min(100, (invoiceVal / c.limit) * 100);
+    const isSelected = c.id === selectedCardId;
     
     const cardEl = document.createElement('div');
     cardEl.className = `credit-card-item ${isSelected ? 'selected' : ''}`;
-    cardEl.style.background = `linear-gradient(135deg, ${card.color}dd, #100f1c)`;
-    cardEl.style.boxShadow = isSelected ? `0 0 25px ${card.color}55` : 'var(--shadow-neon)';
-    cardEl.style.borderColor = isSelected ? card.color : 'rgba(255,255,255,0.05)';
+    cardEl.style.background = `linear-gradient(135deg, ${c.color}dd, #100f1c)`;
+    cardEl.style.boxShadow = isSelected ? `0 0 25px ${c.color}55` : 'var(--shadow-neon)';
+    cardEl.style.borderColor = isSelected ? c.color : 'rgba(255,255,255,0.05)';
     cardEl.onclick = () => {
-      selectedCardId = card.id;
+      selectedCardId = c.id;
+      // Quando seleciona outro cartão, reseta o mês alvo para o mês da fatura corrente dele
+      const today = new Date();
+      const activeInvoice = getTransactionInvoiceMonthYear(today.toISOString().split('T')[0], c.closeDay);
+      selectedInvoiceMonth = activeInvoice.month;
+      selectedInvoiceYear = activeInvoice.year;
       renderCreditCards();
     };
     
+    // Meses compactados em PT-BR
+    const monthsNamesCompact = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    
     cardEl.innerHTML = `
       <div class="card-brand-row">
-        <span style="font-weight:700; letter-spacing:1px;">${card.name.toUpperCase()}</span>
+        <span style="font-weight:700; letter-spacing:1px;">${c.name.toUpperCase()}</span>
         <div class="card-chip"></div>
       </div>
       <div>
-        <div class="card-num">•••• •••• •••• ${card.dueDay.toString().padStart(2, '0')}</div>
-        <p style="font-size:0.7rem; color:rgba(255,255,255,0.6); margin-top:2px;">Vence dia ${card.dueDay}</p>
+        <div class="card-num">•••• •••• •••• ${c.dueDay.toString().padStart(2, '0')}</div>
+        <p style="font-size:0.7rem; color:rgba(255,255,255,0.6); margin-top:2px;">Fatura: ${monthsNamesCompact[selectedInvoiceMonth]}/${selectedInvoiceYear.toString().substring(2)} • Vence dia ${c.dueDay}</p>
       </div>
       <div style="display:flex; flex-direction:column; gap:0.25rem;">
         <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
-          <span>Fatura: <strong>${formatCurrency(currentInvoice)}</strong></span>
-          <span style="opacity:0.8;">Lim: ${formatCurrency(card.limit)}</span>
+          <span>Fatura: <strong>${formatCurrency(invoiceVal)}</strong></span>
+          <span style="opacity:0.8;">Lim: ${formatCurrency(c.limit)}</span>
         </div>
         <div class="card-limit-progress">
-          <div class="card-limit-bar" style="width: ${usagePercent}%; background-color: ${card.color}; box-shadow: 0 0 10px ${card.color};"></div>
+          <div class="card-limit-bar" style="width: ${usagePercent}%; background-color: ${c.color}; box-shadow: 0 0 10px ${c.color};"></div>
         </div>
       </div>
     `;
@@ -1057,17 +1134,44 @@ function renderSelectedCardDetails() {
   const card = state.creditCards.find(c => c.id === selectedCardId);
   if (!card) return;
   
-  // Título do cartão selecionado
-  document.getElementById('selectedCardTitle').innerHTML = `<i class="fa-solid fa-credit-card" style="color:${card.color};"></i> Fatura Atual - ${card.name}`;
+  const monthsNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   
-  // Transações avulsas
+  // Atualiza título da fatura
+  document.getElementById('selectedCardTitle').innerHTML = `<i class="fa-solid fa-credit-card" style="color:${card.color};"></i> Fatura - ${card.name}`;
+  
+  // Atualiza o dropdown seletor de meses dinamicamente
+  const selectElement = document.getElementById('cardInvoiceMonthSelector');
+  if (selectElement) {
+    let optionsHtml = "";
+    
+    // Gerar opções de -3 a +6 meses a partir do mês da fatura corrente
+    const today = new Date();
+    const currentInvoice = getTransactionInvoiceMonthYear(today.toISOString().split('T')[0], card.closeDay);
+    
+    for (let i = -3; i <= 6; i++) {
+      let optDate = new Date(currentInvoice.year, currentInvoice.month + i, 1);
+      let optMonth = optDate.getMonth();
+      let optYear = optDate.getFullYear();
+      
+      const isSelected = optMonth === selectedInvoiceMonth && optYear === selectedInvoiceYear;
+      optionsHtml += `<option value="${optYear}-${optMonth}" ${isSelected ? 'selected' : ''}>Fatura ${monthsNames[optMonth]}/${optYear.toString().substring(2)}</option>`;
+    }
+    selectElement.innerHTML = optionsHtml;
+  }
+  
+  // Transações avulsas filtradas
   const table = document.getElementById('cardTransactionsTable');
   table.innerHTML = '';
   
-  if (card.transactions.length === 0) {
-    table.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Nenhuma compra avulsa neste mês.</td></tr>';
+  const filteredTransactions = card.transactions.filter(t => {
+    const inv = getTransactionInvoiceMonthYear(t.date, card.closeDay);
+    return inv.month === selectedInvoiceMonth && inv.year === selectedInvoiceYear;
+  });
+  
+  if (filteredTransactions.length === 0) {
+    table.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding: 1.5rem 0;">Nenhuma compra avulsa neste período.</td></tr>';
   } else {
-    card.transactions.forEach(tx => {
+    filteredTransactions.forEach(tx => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="mono">${formatDateBr(tx.date)}</td>
@@ -1079,15 +1183,28 @@ function renderSelectedCardDetails() {
     });
   }
   
-  // Compras parceladas
+  // Compras parceladas filtradas
   const instContainer = document.getElementById('cardInstallmentsContainer');
   instContainer.innerHTML = '';
   
-  if (!card.installments || card.installments.length === 0) {
-    instContainer.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1.5rem;">Nenhum parcelamento ativo neste cartão.</p>';
+  const filteredInstallments = [];
+  card.installments.forEach(inst => {
+    const activeInstNum = getInstallmentNumberForMonth(inst.date, inst.totalInstallments, card.closeDay, selectedInvoiceMonth, selectedInvoiceYear);
+    if (activeInstNum !== null) {
+      filteredInstallments.push({
+        inst: inst,
+        number: activeInstNum
+      });
+    }
+  });
+  
+  if (filteredInstallments.length === 0) {
+    instContainer.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:2rem; font-size:0.85rem;">Nenhum parcelamento ativo neste período.</p>';
   } else {
-    card.installments.forEach(inst => {
-      const progressPercent = (inst.currentInstallment / inst.totalInstallments) * 100;
+    filteredInstallments.forEach(item => {
+      const inst = item.inst;
+      const instNumber = item.number;
+      const progressPercent = (instNumber / inst.totalInstallments) * 100;
       
       const div = document.createElement('div');
       div.className = 'card';
@@ -1096,16 +1213,16 @@ function renderSelectedCardDetails() {
       div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
           <div>
-            <h4 style="font-size:0.9rem; font-weight:600;">${inst.description}</h4>
-            <span style="font-size:0.75rem; color:var(--text-muted);">Parcela ${inst.currentInstallment} de ${inst.totalInstallments}</span>
+            <h4 style="font-size:0.9rem; font-weight:600; color:#fff;">${inst.description}</h4>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Parcela ${instNumber} de ${inst.totalInstallments}</span>
           </div>
           <div style="text-align:right;">
             <span class="mono" style="font-weight:700; color:var(--neon-pink);">${formatCurrency(inst.monthlyAmount)}/mês</span>
             <p style="font-size:0.7rem; color:var(--text-muted);">Total: ${formatCurrency(inst.totalAmount)}</p>
           </div>
         </div>
-        <div class="progress-bar-container" style="margin:0 0 0.5rem 0; height:4px;">
-          <div class="progress-bar-fill" style="width: ${progressPercent}%; background: linear-gradient(to right, ${card.color}, var(--neon-pink));"></div>
+        <div class="progress-bar-container" style="margin:0 0 0.5rem 0; height:4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+          <div class="progress-bar-fill" style="width: ${progressPercent}%; background: linear-gradient(to right, ${card.color}, var(--neon-pink)); height: 100%;"></div>
         </div>
       `;
       instContainer.appendChild(div);
