@@ -135,8 +135,9 @@ function saveState() {
   
   // Se a nuvem estiver ativa e logada, e não estivermos aplicando uma atualização de sincronização vinda da nuvem
   if (isCloudActive && loggedInUser && !isSyncingFromCloud) {
-    uploadStateToCloud(state);
+    return uploadStateToCloud(state);
   }
+  return Promise.resolve();
 }
 
 // ==========================================================================
@@ -233,17 +234,18 @@ function setupCloudSync(uid) {
 }
 
 function uploadStateToCloud(stateData) {
-  if (!isCloudActive || !loggedInUser || !firebaseDb) return;
+  if (!isCloudActive || !loggedInUser || !firebaseDb) return Promise.resolve();
   
   const uid = loggedInUser.uid;
   const docRef = firebaseDb.collection('users').doc(uid).collection('data').doc('financialState');
   
-  docRef.set(stateData)
+  return docRef.set(stateData)
     .then(() => {
       console.log("Estado sincronizado com sucesso na nuvem Firestore.");
     })
     .catch((err) => {
       console.error("Erro ao fazer upload para a nuvem Firestore:", err);
+      throw err;
     });
 }
 
@@ -1897,8 +1899,15 @@ function clearAllData() {
   if (confirm("Tem certeza que deseja zerar TODAS as informações do seu painel? Isso apagará tudo e abrirá o Assistente de Configuração Inicial.")) {
     localStorage.setItem('neonfi_onboarded', 'false');
     state = JSON.parse(JSON.stringify(window.EMPTY_TEMPLATE));
-    saveState();
-    location.reload(); // Recarrega para iniciar o Onboarding
+    
+    saveState()
+      .then(() => {
+        location.reload();
+      })
+      .catch((err) => {
+        console.error(err);
+        location.reload();
+      });
   }
 }
 
@@ -1906,8 +1915,15 @@ function resetToMockData() {
   if (confirm("Deseja restaurar os dados fictícios de demonstração? Seus lançamentos atuais serão substituídos.")) {
     localStorage.setItem('neonfi_onboarded', 'true');
     state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
-    saveState();
-    location.reload(); // Recarrega para desenhar o dashboard com a demo
+    
+    saveState()
+      .then(() => {
+        location.reload();
+      })
+      .catch((err) => {
+        console.error(err);
+        location.reload();
+      });
   }
 }
 
@@ -2014,10 +2030,21 @@ function nextWizardStep() {
   if (currentWizardStep === 7) {
     // Finalizar setup
     localStorage.setItem('neonfi_onboarded', 'true');
-    saveState();
     
-    // Transiciona UI e reinicializa
-    location.reload();
+    const btnNext = document.getElementById('wizardBtnNext');
+    const originalHtml = btnNext.innerHTML;
+    btnNext.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Finalizando...';
+    btnNext.disabled = true;
+    
+    saveState()
+      .then(() => {
+        location.reload();
+      })
+      .catch((err) => {
+        alert("Erro ao salvar dados na nuvem: " + err.message);
+        btnNext.innerHTML = originalHtml;
+        btnNext.disabled = false;
+      });
     return;
   }
   
@@ -2031,8 +2058,21 @@ function skipWizardWithDemo() {
   if (confirm("Deseja pular a configuração inicial e carregar os dados de demonstração fictícios?")) {
     localStorage.setItem('neonfi_onboarded', 'true');
     state = JSON.parse(JSON.stringify(window.INITIAL_DATA));
-    saveState();
-    location.reload();
+    
+    const btnDemo = document.getElementById('wizardBtnDemo');
+    const originalHtml = btnDemo.innerHTML;
+    btnDemo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+    btnDemo.disabled = true;
+    
+    saveState()
+      .then(() => {
+        location.reload();
+      })
+      .catch((err) => {
+        alert("Erro ao salvar dados na nuvem: " + err.message);
+        btnDemo.innerHTML = originalHtml;
+        btnDemo.disabled = false;
+      });
   }
 }
 
